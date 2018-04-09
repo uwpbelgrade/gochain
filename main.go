@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/qza/qchain/core"
+	"github.com/qza/gochain/core"
 )
 
 var addr = flag.String("http", "127.0.0.1", "server listen address")
