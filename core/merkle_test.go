@@ -10,9 +10,7 @@ import (
 func TestMerkleTree(t *testing.T) {
 
 	data := [][]byte{
-		[]byte("data1"),
-		[]byte("data2"),
-		[]byte("data3"),
+		[]byte("data1"), []byte("data2"), []byte("data3"),
 	}
 
 	tree := NewMerkleTree(data)

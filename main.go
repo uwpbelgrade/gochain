@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net/http"
 	"time"
 
 	"github.com/qza/gochain/core"
@@ -21,7 +20,7 @@ func boot() {
 func run() {
 	addr := fmt.Sprintf("%s:%s", *addr, *port)
 	fmt.Printf("listening on %v \n", addr)
-	http.ListenAndServe(addr, nil)
+	// http.ListenAndServe(addr, nil)
 }
 
 func genesis() {
@@ -38,8 +37,17 @@ func genesis() {
 	}
 }
 
+func work() {
+	chain := core.InitChain()
+	chain.AddBlock("data")
+	block := chain.Blocks[len(chain.Blocks)-1]
+	fmt.Print("finding pow\n")
+	core.Work(block)
+}
+
 func main() {
 	boot()
 	run()
 	genesis()
+	work()
 }
