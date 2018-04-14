@@ -18,7 +18,7 @@ type Block struct {
 // NewBlock creates new block in chain
 func NewBlock(data string, prevBlockHash []byte) *Block {
 	block := &Block{time.Now().Unix(), []byte(data), prevBlockHash, []byte{}, 0}
-	Work(block)
+	block.POW()
 	return block
 }
 
