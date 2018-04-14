@@ -9,7 +9,6 @@ import (
 func TestPow(t *testing.T) {
 	chain := InitChain()
 	chain.AddBlock("data")
-	block := chain.Blocks[len(chain.Blocks)-1]
-	Work(block)
+	block := chain.Get(chain.tip)
 	assert.True(t, Validate(block), "Hash is correct")
 }
