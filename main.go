@@ -33,6 +33,7 @@ func genesis() {
 		fmt.Printf("Data: %s\n", block.Data)
 		fmt.Printf("Hash: %X\n", block.Hash)
 		fmt.Printf("Timestamp: %d [%s]\n", block.Timestamp, time.Unix(block.Timestamp, 0))
+		fmt.Printf("Nonce: %s \t Valid: %s", block.Hash)
 		fmt.Printf("\n")
 	}
 }
