@@ -1,12 +1,22 @@
 package core
 
-import "github.com/boltdb/bolt"
+import (
+	"fmt"
+
+	"github.com/boltdb/bolt"
+)
 
 // BlockBucket blocks bucket name
 const BlockBucket = "blocks"
 
 // BlockchainDbFile blocks db file name
 const BlockchainDbFile = "/tmp/gochain"
+
+// BlockReward for finding POW
+const BlockReward = 50
+
+// GenesisCoinbaseData for genesis block coinbase transaction
+const GenesisCoinbaseData = "genesis coinbase data"
 
 // Blockchain data structure
 type Blockchain struct {
@@ -20,14 +30,27 @@ type BlockchainIterator struct {
 	db          *bolt.DB
 }
 
+// NewCoinbaseTransaction creates new coinbase transaction
+func NewCoinbaseTransaction(to, data string) *Transaction {
+	if data == "" {
+		data = fmt.Sprintf("Rewart %s", to)
+	}
+	txin := TxInput{[]byte{}, -1, data}
+	txout := TxOutput{BlockReward, to}
+	tx := &Transaction{[]byte{}, []TxInput{txin}, []TxOutput{txout}}
+	tx.GenerateID()
+	return tx
+}
+
 // InitChain makes new blockchain
-func InitChain() *Blockchain {
+func InitChain(address string) *Blockchain {
 	var tip []byte
 	db, err := bolt.Open(BlockchainDbFile, 0600, nil)
 	err = db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(BlockBucket))
 		if b == nil {
-			gen := NewBlock("genesis", []byte{})
+			ts := NewCoinbaseTransaction(address, GenesisCoinbaseData)
+			gen := NewBlock([]*Transaction{ts}, []byte{})
 			b, err = tx.CreateBucket([]byte(BlockBucket))
 			err = b.Put(gen.Hash, gen.Serialize())
 			err = b.Put([]byte("1"), gen.Hash)
@@ -41,14 +64,14 @@ func InitChain() *Blockchain {
 }
 
 // AddBlock adds given data as new block in chain
-func (chain *Blockchain) AddBlock(data string) {
+func (chain *Blockchain) AddBlock(ts []*Transaction) {
 	var tip []byte
 	err := chain.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(BlockBucket))
 		tip = b.Get([]byte("1"))
 		return nil
 	})
-	block := NewBlock(data, tip)
+	block := NewBlock(ts, tip)
 	err = chain.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(BlockBucket))
 		err = b.Put(block.Hash, block.Serialize())

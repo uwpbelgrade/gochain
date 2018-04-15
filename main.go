@@ -24,19 +24,22 @@ func run() {
 }
 
 func genesis() {
-	chain := core.InitChain()
-	chain.AddBlock("block1")
-	chain.AddBlock("block2")
+	chain := core.InitChain("address")
+	chain.AddBlock([]*core.Transaction{})
+	chain.AddBlock([]*core.Transaction{})
 	chainIt := chain.Iterator()
 	for {
 		block := chainIt.Next()
 		fmt.Printf("\n")
 		fmt.Printf("Previous hash: %x\n", block.PrevBlockHash)
-		fmt.Printf("Data: %s\n", block.Data)
+		fmt.Printf("Data: %x\n", block.Transactions)
 		fmt.Printf("Hash: %X\n", block.Hash)
 		fmt.Printf("Timestamp: %d [%s]\n", block.Timestamp, time.Unix(block.Timestamp, 0))
-		fmt.Printf("Nonce: %s", block.Hash)
+		fmt.Printf("Nonce: %d", block.Nonce)
 		fmt.Printf("\n")
+		if len(block.PrevBlockHash) == 0 {
+			break
+		}
 	}
 }
 

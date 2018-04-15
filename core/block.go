@@ -2,6 +2,7 @@ package core
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/gob"
 	"time"
 )
@@ -9,17 +10,27 @@ import (
 // Block holds transactions in chain
 type Block struct {
 	Timestamp     int64
-	Data          []byte
+	Transactions  []*Transaction
 	PrevBlockHash []byte
 	Hash          []byte
 	Nonce         int
 }
 
-// NewBlock creates new block in chain
-func NewBlock(data string, prevBlockHash []byte) *Block {
-	block := &Block{time.Now().Unix(), []byte(data), prevBlockHash, []byte{}, 0}
+// NewBlock creates new block
+func NewBlock(transactions []*Transaction, prevBlockHash []byte) *Block {
+	block := &Block{time.Now().Unix(), transactions, prevBlockHash, []byte{}, 0}
 	block.POW()
 	return block
+}
+
+// HashTransactions makes hash of all transaction ids
+func (block *Block) HashTransactions() []byte {
+	var hashes [][]byte
+	for _, transaction := range block.Transactions {
+		hashes = append(hashes, transaction.ID)
+	}
+	hash := sha256.Sum256(bytes.Join(hashes, []byte{}))
+	return hash[:]
 }
 
 // Serialize serializes block using encoder

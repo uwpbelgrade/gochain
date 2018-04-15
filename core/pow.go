@@ -37,7 +37,7 @@ func (block *Block) ValidatePOW() bool {
 func (block *Block) join(nonce int) []byte {
 	return bytes.Join([][]byte{
 		block.PrevBlockHash,
-		block.Data,
+		block.HashTransactions(),
 		block.Hash,
 		[]byte(fmt.Sprintf("%x", nonce)),
 	}, []byte{})
