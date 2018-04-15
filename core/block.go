@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/gob"
+	"fmt"
 	"time"
 )
 
@@ -53,4 +54,15 @@ func Deserialize(data []byte) *Block {
 		panic(err)
 	}
 	return &block
+}
+
+// Log prints block info
+func (block *Block) Log() {
+	fmt.Printf("\n")
+	fmt.Printf("Previous hash: %x\n", block.PrevBlockHash)
+	fmt.Printf("Data: %x\n", block.Transactions)
+	fmt.Printf("Hash: %X\n", block.Hash)
+	fmt.Printf("Timestamp: %d [%s]\n", block.Timestamp, time.Unix(block.Timestamp, 0))
+	fmt.Printf("Nonce: %d", block.Nonce)
+	fmt.Printf("\n")
 }

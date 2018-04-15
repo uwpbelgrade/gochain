@@ -37,3 +37,18 @@ func (tx *Transaction) GenerateID() {
 	hash := sha256.Sum256(encoded.Bytes())
 	tx.ID = hash[:]
 }
+
+// IsCoinbase checks whether the transaction is coinbase
+func (tx Transaction) IsCoinbase() bool {
+	return len(tx.Vin) == 1 && len(tx.Vin[0].Txid) == 0 && tx.Vin[0].Vout == -1
+}
+
+// CanUnlockOutput checks if key can unlock output
+func (txin *TxInput) CanUnlockOutput(key string) bool {
+	return txin.ScriptSig == key
+}
+
+// CanOutputBeUnlocked checks if output can be unlocked with key
+func (txout *TxOutput) CanOutputBeUnlocked(key string) bool {
+	return txout.ScriptPubKey == key
+}

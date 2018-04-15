@@ -1,6 +1,7 @@
 package core
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"github.com/boltdb/bolt"
@@ -115,4 +116,64 @@ func (it *BlockchainIterator) Next() *Block {
 	}
 	it.currentHash = block.PrevBlockHash
 	return block
+}
+
+// GetUnspentTransactions gets unspent transactions
+func (chain *Blockchain) GetUnspentTransactions(address string) []Transaction {
+	var unspent []Transaction
+	spent := make(map[string][]int)
+	it := chain.Iterator()
+	for {
+		block := it.Next()
+		for _, tx := range block.Transactions {
+			txID := hex.EncodeToString(tx.ID)
+		Out:
+			for outI, out := range tx.Vout {
+				if spent[txID] != nil {
+					for _, spentOut := range spent[txID] {
+						if spentOut == outI {
+							continue Out
+						}
+					}
+				}
+				if out.CanOutputBeUnlocked(address) {
+					unspent = append(unspent, *tx)
+				}
+			}
+			if tx.IsCoinbase() == false {
+				for _, in := range tx.Vin {
+					if in.CanUnlockOutput(address) {
+						inTxID := hex.EncodeToString(in.Txid)
+						spent[inTxID] = append(spent[inTxID], in.Vout)
+					}
+				}
+			}
+		}
+		if len(block.PrevBlockHash) == 0 {
+			break
+		}
+	}
+	return unspent
+}
+
+// GetUtxo gets unspent transaction outputs
+func (chain *Blockchain) GetUtxo(address string) []TxOutput {
+	var unspentOutputs []TxOutput
+	for _, tx := range chain.GetUnspentTransactions(address) {
+		for _, out := range tx.Vout {
+			if out.CanOutputBeUnlocked(address) {
+				unspentOutputs = append(unspentOutputs, out)
+			}
+		}
+	}
+	return unspentOutputs
+}
+
+// GetBalance gets balance for address
+func (chain *Blockchain) GetBalance(address string) int {
+	var balance int
+	for _, utxo := range chain.GetUtxo(address) {
+		balance += utxo.Value
+	}
+	return balance
 }

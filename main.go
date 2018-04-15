@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/qza/gochain/core"
 )
@@ -30,13 +29,7 @@ func genesis() {
 	chainIt := chain.Iterator()
 	for {
 		block := chainIt.Next()
-		fmt.Printf("\n")
-		fmt.Printf("Previous hash: %x\n", block.PrevBlockHash)
-		fmt.Printf("Data: %x\n", block.Transactions)
-		fmt.Printf("Hash: %X\n", block.Hash)
-		fmt.Printf("Timestamp: %d [%s]\n", block.Timestamp, time.Unix(block.Timestamp, 0))
-		fmt.Printf("Nonce: %d", block.Nonce)
-		fmt.Printf("\n")
+		block.Log()
 		if len(block.PrevBlockHash) == 0 {
 			break
 		}
