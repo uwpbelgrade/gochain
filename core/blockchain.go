@@ -64,6 +64,24 @@ func InitChain(address string) *Blockchain {
 	return &Blockchain{tip, db}
 }
 
+// GetChain makes new blockchain
+func GetChain() *Blockchain {
+	var tip []byte
+	db, err := bolt.Open(BlockchainDbFile, 0600, nil)
+	if err != nil {
+		panic(err)
+	}
+	err = db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(BlockBucket))
+		tip = b.Get([]byte("1"))
+		return nil
+	})
+	if err != nil {
+		panic(err)
+	}
+	return &Blockchain{tip, db}
+}
+
 // AddBlock adds given data as new block in chain
 func (chain *Blockchain) AddBlock(ts []*Transaction) {
 	var tip []byte
@@ -100,6 +118,19 @@ func (chain *Blockchain) Get(hash []byte) *Block {
 // Iterator makes new Blockchain iterator
 func (chain *Blockchain) Iterator() *BlockchainIterator {
 	return &BlockchainIterator{chain.tip, chain.db}
+}
+
+// Log logs current blockchain
+func (chain *Blockchain) Log() error {
+	chainIt := chain.Iterator()
+	for {
+		block := chainIt.Next()
+		block.Log()
+		if len(block.PrevBlockHash) == 0 {
+			break
+		}
+	}
+	return nil
 }
 
 // Next gets the next block from iterator

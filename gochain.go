@@ -12,22 +12,48 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "gochain"
 	app.Usage = "gochain help"
+	app.Commands = []cli.Command{
+		{
+			Name:    "chain",
+			Aliases: []string{"c"},
+			Usage:   "chain actions",
+			Subcommands: []cli.Command{
+				{
+					Name:  "init",
+					Usage: "initializes new blockchain",
+					Action: func(c *cli.Context) error {
+						os.RemoveAll(core.BlockchainDbFile)
+						core.InitChain(c.Args().First())
+						log.Println("ok")
+						return nil
+					},
+				},
+				{
+					Name:  "print",
+					Usage: "prints all blocks in the chain",
+					Action: func(c *cli.Context) error {
+						chain := core.GetChain()
+						chain.Log()
+						log.Println("ok")
+						return nil
+					},
+				},
+			},
+		},
+		{
+			Name:    "balance",
+			Aliases: []string{"b"},
+			Usage:   "get the balance of address",
+			Action: func(c *cli.Context) error {
+				chain := core.GetChain()
+				balance := chain.GetBalance(c.Args().First())
+				log.Printf("balance: %d", balance)
+				return nil
+			},
+		},
+	}
 	err := app.Run(os.Args)
 	if err != nil {
 		log.Fatal(err)
-	}
-}
-
-func genesis() {
-	chain := core.InitChain("address")
-	chain.AddBlock([]*core.Transaction{})
-	chain.AddBlock([]*core.Transaction{})
-	chainIt := chain.Iterator()
-	for {
-		block := chainIt.Next()
-		block.Log()
-		if len(block.PrevBlockHash) == 0 {
-			break
-		}
 	}
 }
