@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/gob"
+	"fmt"
 )
 
 // TxInput transaction input
@@ -24,6 +25,18 @@ type Transaction struct {
 	ID   []byte
 	Vin  []TxInput
 	Vout []TxOutput
+}
+
+// NewCoinbaseTransaction creates new coinbase transaction
+func NewCoinbaseTransaction(to, data string) *Transaction {
+	if data == "" {
+		data = fmt.Sprintf("Rewart %s", to)
+	}
+	txin := TxInput{[]byte{}, -1, data}
+	txout := TxOutput{BlockReward(), to}
+	tx := &Transaction{[]byte{}, []TxInput{txin}, []TxOutput{txout}}
+	tx.GenerateID()
+	return tx
 }
 
 // GenerateID generates new id for transaction

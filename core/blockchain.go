@@ -2,22 +2,9 @@ package core
 
 import (
 	"encoding/hex"
-	"fmt"
 
 	"github.com/boltdb/bolt"
 )
-
-// BlockBucket blocks bucket name
-const BlockBucket = "blocks"
-
-// BlockchainDbFile blocks db file name
-const BlockchainDbFile = "/tmp/gochain"
-
-// BlockReward for finding POW
-const BlockReward = 50
-
-// GenesisCoinbaseData for genesis block coinbase transaction
-const GenesisCoinbaseData = "genesis coinbase data"
 
 // Blockchain data structure
 type Blockchain struct {
@@ -31,28 +18,16 @@ type BlockchainIterator struct {
 	db          *bolt.DB
 }
 
-// NewCoinbaseTransaction creates new coinbase transaction
-func NewCoinbaseTransaction(to, data string) *Transaction {
-	if data == "" {
-		data = fmt.Sprintf("Rewart %s", to)
-	}
-	txin := TxInput{[]byte{}, -1, data}
-	txout := TxOutput{BlockReward, to}
-	tx := &Transaction{[]byte{}, []TxInput{txin}, []TxOutput{txout}}
-	tx.GenerateID()
-	return tx
-}
-
 // InitChain makes new blockchain
 func InitChain(address string) *Blockchain {
 	var tip []byte
-	db, err := bolt.Open(BlockchainDbFile, 0600, nil)
+	db, err := bolt.Open(DbFile(), 0600, nil)
 	err = db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(BlockBucket))
+		b := tx.Bucket([]byte(DbBucket()))
 		if b == nil {
-			ts := NewCoinbaseTransaction(address, GenesisCoinbaseData)
+			ts := NewCoinbaseTransaction(address, GenesisData())
 			gen := NewBlock([]*Transaction{ts}, []byte{})
-			b, err = tx.CreateBucket([]byte(BlockBucket))
+			b, err = tx.CreateBucket([]byte(DbBucket()))
 			err = b.Put(gen.Hash, gen.Serialize())
 			err = b.Put([]byte("1"), gen.Hash)
 			tip = gen.Hash
@@ -67,12 +42,12 @@ func InitChain(address string) *Blockchain {
 // GetChain makes new blockchain
 func GetChain() *Blockchain {
 	var tip []byte
-	db, err := bolt.Open(BlockchainDbFile, 0600, nil)
+	db, err := bolt.Open(DbFile(), 0600, nil)
 	if err != nil {
 		panic(err)
 	}
 	err = db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(BlockBucket))
+		b := tx.Bucket([]byte(DbBucket()))
 		tip = b.Get([]byte("1"))
 		return nil
 	})
@@ -86,13 +61,13 @@ func GetChain() *Blockchain {
 func (chain *Blockchain) AddBlock(ts []*Transaction) {
 	var tip []byte
 	err := chain.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(BlockBucket))
+		b := tx.Bucket([]byte(DbBucket()))
 		tip = b.Get([]byte("1"))
 		return nil
 	})
 	block := NewBlock(ts, tip)
 	err = chain.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(BlockBucket))
+		b := tx.Bucket([]byte(DbBucket()))
 		err = b.Put(block.Hash, block.Serialize())
 		err = b.Put([]byte("1"), block.Hash)
 		chain.tip = block.Hash
@@ -104,7 +79,7 @@ func (chain *Blockchain) AddBlock(ts []*Transaction) {
 func (chain *Blockchain) Get(hash []byte) *Block {
 	var block *Block
 	err := chain.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(BlockBucket))
+		b := tx.Bucket([]byte(DbBucket()))
 		encodedBlock := b.Get(hash)
 		block = Deserialize(encodedBlock)
 		return nil
@@ -137,7 +112,7 @@ func (chain *Blockchain) Log() error {
 func (it *BlockchainIterator) Next() *Block {
 	var block *Block
 	err := it.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(BlockBucket))
+		b := tx.Bucket([]byte(DbBucket()))
 		encodedBlock := b.Get(it.currentHash)
 		block = Deserialize(encodedBlock)
 		return nil

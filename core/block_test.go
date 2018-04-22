@@ -6,6 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+import _ "github.com/joho/godotenv/autoload"
+
 func TestSerializeDeserialize(t *testing.T) {
 
 	txin1 := TxInput{[]byte("tx1"), 0, "script1"}

@@ -4,11 +4,16 @@ import (
 	"log"
 	"os"
 
+	"github.com/joho/godotenv"
 	"github.com/qza/gochain/core"
 	"github.com/urfave/cli"
 )
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 	app := cli.NewApp()
 	app.Name = "gochain"
 	app.Usage = "gochain help"
@@ -22,7 +27,7 @@ func main() {
 					Name:  "init",
 					Usage: "initializes new blockchain",
 					Action: func(c *cli.Context) error {
-						os.RemoveAll(core.BlockchainDbFile)
+						os.RemoveAll(core.DbFile())
 						core.InitChain(c.Args().First())
 						log.Println("ok")
 						return nil
@@ -52,7 +57,7 @@ func main() {
 			},
 		},
 	}
-	err := app.Run(os.Args)
+	err = app.Run(os.Args)
 	if err != nil {
 		log.Fatal(err)
 	}
