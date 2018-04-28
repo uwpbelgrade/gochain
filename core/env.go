@@ -44,7 +44,7 @@ func (env *EnvConfig) Get(key string) string {
 
 // GetInt gets intiger value from config
 func (env *EnvConfig) GetInt(key string) int {
-	reward, err := strconv.ParseInt(os.Getenv(key), 10, 2)
+	reward, err := strconv.ParseInt(os.Getenv(key), 10, 64)
 	if err != nil {
 		log.Fatalf("error getting %s: %s", key, err)
 	}
@@ -53,10 +53,11 @@ func (env *EnvConfig) GetInt(key string) int {
 
 // EnvTestConfig test config
 type EnvTestConfig struct {
+	dbFile string
 	EnvConfig
 }
 
 // GetDbFile gets test db file name
 func (envt *EnvTestConfig) GetDbFile() string {
-	return "/tmp/gochain-test"
+	return "/tmp/gochaintest"
 }

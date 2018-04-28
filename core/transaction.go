@@ -30,7 +30,7 @@ type Transaction struct {
 // NewCoinbaseTransaction creates new coinbase transaction
 func NewCoinbaseTransaction(to, data string, reward int) *Transaction {
 	if data == "" {
-		data = fmt.Sprintf("Rewart %s", to)
+		data = fmt.Sprintf("Reward %s", to)
 	}
 	txin := TxInput{[]byte{}, -1, data}
 	txout := TxOutput{reward, to}
