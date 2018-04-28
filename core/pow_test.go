@@ -7,7 +7,8 @@ import (
 )
 
 func TestPow(t *testing.T) {
-	chain := InitChain("address")
+	env := &EnvTestConfig{}
+	chain := InitChain(env, "address")
 	chain.AddBlock([]*Transaction{DemoTransaction()})
 	block := chain.Get(chain.tip)
 	assert.True(t, block.ValidatePOW(), "Hash is correct")

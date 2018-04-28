@@ -28,12 +28,12 @@ type Transaction struct {
 }
 
 // NewCoinbaseTransaction creates new coinbase transaction
-func NewCoinbaseTransaction(to, data string) *Transaction {
+func NewCoinbaseTransaction(to, data string, reward int) *Transaction {
 	if data == "" {
 		data = fmt.Sprintf("Rewart %s", to)
 	}
 	txin := TxInput{[]byte{}, -1, data}
-	txout := TxOutput{BlockReward(), to}
+	txout := TxOutput{reward, to}
 	tx := &Transaction{[]byte{}, []TxInput{txin}, []TxOutput{txout}}
 	tx.GenerateID()
 	return tx

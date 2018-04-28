@@ -8,26 +8,28 @@ import (
 
 // Blockchain data structure
 type Blockchain struct {
-	tip []byte
-	db  *bolt.DB
+	tip    []byte
+	db     *bolt.DB
+	config Config
 }
 
 // BlockchainIterator iterates over blocks
 type BlockchainIterator struct {
 	currentHash []byte
 	db          *bolt.DB
+	config      Config
 }
 
 // InitChain makes new blockchain
-func InitChain(address string) *Blockchain {
+func InitChain(config Config, address string) *Blockchain {
 	var tip []byte
-	db, err := bolt.Open(DbFile(), 0600, nil)
+	db, err := bolt.Open(config.GetDbFile(), 0600, nil)
 	err = db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(DbBucket()))
+		b := tx.Bucket([]byte(config.GetDbBucket()))
 		if b == nil {
-			ts := NewCoinbaseTransaction(address, GenesisData())
+			ts := NewCoinbaseTransaction(address, config.GetGenesisData(), config.GetBlockReward())
 			gen := NewBlock([]*Transaction{ts}, []byte{})
-			b, err = tx.CreateBucket([]byte(DbBucket()))
+			b, err = tx.CreateBucket([]byte(config.GetDbBucket()))
 			err = b.Put(gen.Hash, gen.Serialize())
 			err = b.Put([]byte("1"), gen.Hash)
 			tip = gen.Hash
@@ -36,38 +38,38 @@ func InitChain(address string) *Blockchain {
 		}
 		return nil
 	})
-	return &Blockchain{tip, db}
+	return &Blockchain{tip, db, config}
 }
 
 // GetChain makes new blockchain
-func GetChain() *Blockchain {
+func GetChain(config Config) *Blockchain {
 	var tip []byte
-	db, err := bolt.Open(DbFile(), 0600, nil)
+	db, err := bolt.Open(config.GetDbFile(), 0600, nil)
 	if err != nil {
 		panic(err)
 	}
 	err = db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(DbBucket()))
+		b := tx.Bucket([]byte(config.GetDbBucket()))
 		tip = b.Get([]byte("1"))
 		return nil
 	})
 	if err != nil {
 		panic(err)
 	}
-	return &Blockchain{tip, db}
+	return &Blockchain{tip, db, config}
 }
 
 // AddBlock adds given data as new block in chain
 func (chain *Blockchain) AddBlock(ts []*Transaction) {
 	var tip []byte
 	err := chain.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(DbBucket()))
+		b := tx.Bucket([]byte(chain.config.GetDbBucket()))
 		tip = b.Get([]byte("1"))
 		return nil
 	})
 	block := NewBlock(ts, tip)
 	err = chain.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(DbBucket()))
+		b := tx.Bucket([]byte(chain.config.GetDbBucket()))
 		err = b.Put(block.Hash, block.Serialize())
 		err = b.Put([]byte("1"), block.Hash)
 		chain.tip = block.Hash
@@ -79,7 +81,7 @@ func (chain *Blockchain) AddBlock(ts []*Transaction) {
 func (chain *Blockchain) Get(hash []byte) *Block {
 	var block *Block
 	err := chain.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(DbBucket()))
+		b := tx.Bucket([]byte(chain.config.GetDbBucket()))
 		encodedBlock := b.Get(hash)
 		block = Deserialize(encodedBlock)
 		return nil
@@ -92,7 +94,7 @@ func (chain *Blockchain) Get(hash []byte) *Block {
 
 // Iterator makes new Blockchain iterator
 func (chain *Blockchain) Iterator() *BlockchainIterator {
-	return &BlockchainIterator{chain.tip, chain.db}
+	return &BlockchainIterator{chain.tip, chain.db, chain.config}
 }
 
 // Log logs current blockchain
@@ -112,7 +114,7 @@ func (chain *Blockchain) Log() error {
 func (it *BlockchainIterator) Next() *Block {
 	var block *Block
 	err := it.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(DbBucket()))
+		b := tx.Bucket([]byte(it.config.GetDbBucket()))
 		encodedBlock := b.Get(it.currentHash)
 		block = Deserialize(encodedBlock)
 		return nil

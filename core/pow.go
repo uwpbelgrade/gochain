@@ -9,7 +9,7 @@ import (
 )
 
 // Difficulty of challenge
-const Difficulty = 4
+const Difficulty = 3
 
 // POW finds POW: sha256 hash that starts with N (difficulty) zeros
 func (block *Block) POW() {
