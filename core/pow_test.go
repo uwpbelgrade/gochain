@@ -7,7 +7,7 @@ import (
 )
 
 func TestPow(t *testing.T) {
-	env := &EnvTestConfig{}
+	env := &EnvConfig{}
 	chain := InitChain(env, "address")
 	chain.AddBlock([]*Transaction{DemoTransaction()})
 	block := chain.Get(chain.tip)

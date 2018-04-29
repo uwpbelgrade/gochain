@@ -12,6 +12,7 @@ type Config interface {
 	GetDbBucket() string
 	GetBlockReward() int
 	GetGenesisData() string
+	GetWalletStoreFile() string
 }
 
 // EnvConfig implements Config via environment
@@ -37,6 +38,11 @@ func (env *EnvConfig) GetGenesisData() string {
 	return env.Get("GENESIS_DATA")
 }
 
+// GetWalletStoreFile gets WALLET_STORE_FILE
+func (env *EnvConfig) GetWalletStoreFile() string {
+	return env.Get("WALLET_STORE_FILE")
+}
+
 // Get gets string value from config
 func (env *EnvConfig) Get(key string) string {
 	return os.Getenv(key)
@@ -49,15 +55,4 @@ func (env *EnvConfig) GetInt(key string) int {
 		log.Fatalf("error getting %s: %s", key, err)
 	}
 	return int(reward)
-}
-
-// EnvTestConfig test config
-type EnvTestConfig struct {
-	dbFile string
-	EnvConfig
-}
-
-// GetDbFile gets test db file name
-func (envt *EnvTestConfig) GetDbFile() string {
-	return "/tmp/gochaintest"
 }
