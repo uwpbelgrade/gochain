@@ -18,3 +18,7 @@ func TestGetAddress(t *testing.T) {
 	wallet := NewWallet()
 	assert.NotNil(t, wallet.GetAddress())
 }
+
+func TestLogWallet(t *testing.T) {
+	NewWallet().Log()
+}

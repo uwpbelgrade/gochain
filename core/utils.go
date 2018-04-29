@@ -2,6 +2,7 @@ package core
 
 import (
 	"crypto/sha256"
+	"os"
 
 	"golang.org/x/crypto/ripemd160"
 )
@@ -23,4 +24,13 @@ func ShaChecksum(payload []byte, length int) []byte {
 	sha := sha256.Sum256(payload)
 	sha2 := sha256.Sum256(sha[:])
 	return sha2[:length]
+}
+
+//FileExists checks if file exists on path
+func FileExists(path string) bool {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true
+	}
+	return !os.IsNotExist(err)
 }
