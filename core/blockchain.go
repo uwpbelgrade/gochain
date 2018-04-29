@@ -185,3 +185,47 @@ func (chain *Blockchain) GetBalance(address string) int {
 	}
 	return balance
 }
+
+// GetSpendableOutputs gets the spendable TxOutputs and total amount that covers requested amount
+func (chain *Blockchain) GetSpendableOutputs(address string, amount int) (int, map[string][]int) {
+	total := 0
+	unspent := make(map[string][]int)
+	utxs := chain.GetUnspentTransactions(address)
+	for utxi := 0; utxi < len(utxs) && total < amount; utxi++ {
+		utx := utxs[utxi]
+		utxid := hex.EncodeToString(utx.ID)
+		for utxoi := 0; utxoi < len(utx.Vout) && total < amount; utxoi++ {
+			utxo := utx.Vout[utxoi]
+			if utxo.CanOutputBeUnlocked(address) {
+				unspent[utxid] = append(unspent[utxid], utxoi)
+				total += utxo.Value
+			}
+		}
+	}
+	return total, unspent
+}
+
+// NewTransaction generates new transaction from spendable outputs
+func (chain *Blockchain) NewTransaction(from, to string, amount int) *Transaction {
+	var txins []TxInput
+	var txous []TxOutput
+	spendable, outs := chain.GetSpendableOutputs(from, amount)
+	if spendable < amount {
+		panic("not enough balance for transaction")
+	}
+	returnable := spendable - amount
+	for txi, touts := range outs {
+		txid, err := hex.DecodeString(txi)
+		if err != nil {
+			panic(err)
+		}
+		for _, out := range touts {
+			txins = append(txins, TxInput{txid, out, from})
+		}
+	}
+	txous = append(txous, TxOutput{amount, to})
+	txous = append(txous, TxOutput{returnable, from})
+	tx := &Transaction{nil, txins, txous}
+	tx.GenerateID()
+	return tx
+}

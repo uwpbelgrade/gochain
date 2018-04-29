@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/joho/godotenv"
 	"github.com/qza/gochain/core"
@@ -13,7 +14,8 @@ func main() {
 	err := godotenv.Load()
 	env := &core.EnvConfig{}
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		// log.Fatal("Error loading .env file")
+		panic(err)
 	}
 	app := cli.NewApp()
 	app.Name = "gochain"
@@ -54,6 +56,23 @@ func main() {
 				chain := core.GetChain(env)
 				balance := chain.GetBalance(c.Args().First())
 				log.Printf("balance: %d", balance)
+				return nil
+			},
+		},
+		{
+			Name:    "send",
+			Aliases: []string{"s"},
+			Usage:   "sends the amount to destination address",
+			Action: func(c *cli.Context) error {
+				chain := core.GetChain(env)
+				from := c.Args().Get(0)
+				to := c.Args().Get(1)
+				amount, erra := strconv.ParseInt(c.Args().Get(2), 10, 64)
+				if erra != nil {
+					panic(erra)
+				}
+				tx := chain.NewTransaction(from, to, int(amount))
+				chain.AddBlock([]*core.Transaction{tx})
 				return nil
 			},
 		},
