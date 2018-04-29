@@ -67,7 +67,7 @@ func (block *Block) Log() {
 	Nonce: %d
 	Transactions:
 	`
-	fmt.Printf(template, block.PrevBlockHash, block.Transactions, block.Hash,
+	fmt.Printf(template, block.PrevBlockHash, block.Hash,
 		block.Timestamp, time.Unix(block.Timestamp, 0), block.Nonce)
 
 	for _, t := range block.Transactions {
