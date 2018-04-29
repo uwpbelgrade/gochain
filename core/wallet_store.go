@@ -11,12 +11,17 @@ import (
 // WalletStore holds wallets list
 type WalletStore struct {
 	Wallets map[string]*Wallet
-	config  Config
+	Config  Config
+}
+
+// NewWalletStore creates new wallet store
+func NewWalletStore(config Config) *WalletStore {
+	return &WalletStore{make(map[string]*Wallet), config}
 }
 
 // Reset resets the wallet store
 func (ws *WalletStore) Reset() error {
-	file := ws.config.GetWalletStoreFile()
+	file := ws.Config.GetWalletStoreFile()
 	if !FileExists(file) {
 		ws.Save()
 	} else {
@@ -39,6 +44,9 @@ func (ws *WalletStore) GetWallet(address string) *Wallet {
 func (ws *WalletStore) CreateWallet() *Wallet {
 	wallet := NewWallet()
 	address := string(wallet.GetAddress())
+	if ws.Wallets == nil {
+		ws.Wallets = make(map[string]*Wallet)
+	}
 	ws.Wallets[address] = wallet
 	ws.Save()
 	return wallet
@@ -63,7 +71,7 @@ func (ws *WalletStore) Save() {
 	if err != nil {
 		panic(err)
 	}
-	file := ws.config.GetWalletStoreFile()
+	file := ws.Config.GetWalletStoreFile()
 	err = ioutil.WriteFile(file, buffer.Bytes(), 0644)
 	if err != nil {
 		panic(err)

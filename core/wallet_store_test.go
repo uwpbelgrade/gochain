@@ -9,7 +9,7 @@ import (
 
 func TestResetStore(t *testing.T) {
 	wstore := makeWalletStore()
-	err := os.Remove(wstore.config.GetWalletStoreFile())
+	err := os.Remove(wstore.Config.GetWalletStoreFile())
 	if err != nil {
 		panic(err)
 	}
@@ -26,7 +26,7 @@ func TestResetStore(t *testing.T) {
 func TestCreateWallet(t *testing.T) {
 	wstore := makeWalletStore()
 	wallet := wstore.CreateWallet()
-	wstore.Load(wstore.config.GetWalletStoreFile())
+	wstore.Load(wstore.Config.GetWalletStoreFile())
 	wallet2 := wstore.GetWallet(string(wallet.GetAddress()))
 	assert.NotNil(t, wallet)
 	assert.NotNil(t, wallet2)

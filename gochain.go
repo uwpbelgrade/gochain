@@ -84,7 +84,8 @@ func main() {
 					Name:  "new",
 					Usage: "initializes new wallet",
 					Action: func(c *cli.Context) error {
-						wallet := core.NewWallet()
+						wstore := core.NewWalletStore(env)
+						wallet := wstore.CreateWallet()
 						log.Printf("wallet created")
 						wallet.Log()
 						return nil
