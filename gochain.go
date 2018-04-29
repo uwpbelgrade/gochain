@@ -14,7 +14,6 @@ func main() {
 	err := godotenv.Load()
 	env := &core.EnvConfig{}
 	if err != nil {
-		// log.Fatal("Error loading .env file")
 		panic(err)
 	}
 	app := cli.NewApp()
@@ -74,6 +73,23 @@ func main() {
 				tx := chain.NewTransaction(from, to, int(amount))
 				chain.AddBlock([]*core.Transaction{tx})
 				return nil
+			},
+		},
+		{
+			Name:    "wallet",
+			Aliases: []string{"w"},
+			Usage:   "wallet actions",
+			Subcommands: []cli.Command{
+				{
+					Name:  "new",
+					Usage: "initializes new wallet",
+					Action: func(c *cli.Context) error {
+						wallet := core.NewWallet()
+						log.Printf("wallet created")
+						wallet.Log()
+						return nil
+					},
+				},
 			},
 		},
 	}

@@ -59,14 +59,17 @@ func Deserialize(data []byte) *Block {
 
 // Log prints block info
 func (block *Block) Log() {
-	fmt.Printf("\n")
-	fmt.Printf("BLOCK >>>> \n")
-	fmt.Printf("Previous hash: %x\n", block.PrevBlockHash)
-	fmt.Printf("Data: %x\n", block.Transactions)
-	fmt.Printf("Hash: %X\n", block.Hash)
-	fmt.Printf("Timestamp: %d [%s]\n", block.Timestamp, time.Unix(block.Timestamp, 0))
-	fmt.Printf("Nonce: %d \n", block.Nonce)
-	fmt.Printf("Transactions: \n")
+	template := `
+	BLOCK >>>>
+	Previous hash: %x
+	Data: %x
+	Timestamp: %d [%s]
+	Nonce: %d
+	Transactions:
+	`
+	fmt.Printf(template, block.PrevBlockHash, block.Transactions, block.Hash,
+		block.Timestamp, time.Unix(block.Timestamp, 0), block.Nonce)
+
 	for _, t := range block.Transactions {
 		fmt.Printf("t[ID]: %s \n", hex.EncodeToString(t.ID))
 	}
