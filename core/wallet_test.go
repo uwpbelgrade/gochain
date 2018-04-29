@@ -11,6 +11,7 @@ func TestNewWallet(t *testing.T) {
 	assert.NotNil(t, wallet)
 	assert.NotNil(t, wallet.PrivateKey)
 	assert.NotNil(t, wallet.PublicKey)
+	assert.True(t, wallet.IsValidAddress())
 }
 
 func TestGetAddress(t *testing.T) {

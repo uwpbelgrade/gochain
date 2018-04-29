@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -41,6 +42,19 @@ func (wallet *Wallet) GetAddress() []byte {
 	checksum := ShaChecksum(versionedPublicK, AddressChecksumLength)
 	address := base58.Encode(append(versionedPublicK, checksum...))
 	return []byte(address)
+}
+
+// IsValidAddress validates wallet address
+func (wallet *Wallet) IsValidAddress() bool {
+	address := wallet.GetAddress()
+	publicK, err := base58.Decode(string(address))
+	if err != nil {
+		panic(err)
+	}
+	checksum := publicK[len(publicK)-AddressChecksumLength:]
+	publicKeyHash := publicK[0 : len(publicK)-AddressChecksumLength]
+	requiredChecksum := ShaChecksum(publicKeyHash, AddressChecksumLength)
+	return bytes.Compare(checksum, requiredChecksum) == 0
 }
 
 // Log prints block info
