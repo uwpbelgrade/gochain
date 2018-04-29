@@ -70,8 +70,7 @@ func main() {
 				if erra != nil {
 					panic(erra)
 				}
-				tx := chain.NewTransaction(from, to, int(amount))
-				chain.AddBlock([]*core.Transaction{tx})
+				chain.NewTransaction(from, to, int(amount))
 				return nil
 			},
 		},

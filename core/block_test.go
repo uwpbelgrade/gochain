@@ -35,6 +35,8 @@ func TestSerializeDeserialize(t *testing.T) {
 		assert.Equal(t, tx.Vin, tx2.Vin)
 		assert.Equal(t, tx.Vout, tx2.Vout)
 	}
+
+	block.Log()
 }
 
 func DemoTransaction() *Transaction {

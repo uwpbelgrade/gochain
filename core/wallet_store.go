@@ -2,6 +2,7 @@ package core
 
 import (
 	"bytes"
+	"crypto/elliptic"
 	"encoding/gob"
 	"fmt"
 	"io/ioutil"
@@ -66,6 +67,7 @@ func (ws *WalletStore) DeleteWallet(address string) {
 // Save saves wallets to file
 func (ws *WalletStore) Save() {
 	var buffer bytes.Buffer
+	gob.Register(elliptic.P256())
 	encoder := gob.NewEncoder(&buffer)
 	err := encoder.Encode(ws.Wallets)
 	if err != nil {
@@ -85,6 +87,7 @@ func (ws *WalletStore) Load(filename string) error {
 		return err
 	}
 	reader := bytes.NewReader(content)
+	gob.Register(elliptic.P256())
 	decoder := gob.NewDecoder(reader)
 	err = decoder.Decode(&ws.Wallets)
 	if err != nil {

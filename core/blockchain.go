@@ -2,6 +2,7 @@ package core
 
 import (
 	"encoding/hex"
+	"fmt"
 
 	"github.com/boltdb/bolt"
 )
@@ -206,18 +207,18 @@ func (chain *Blockchain) GetSpendableOutputs(address string, amount int) (int, m
 }
 
 // NewTransaction generates new transaction from spendable outputs
-func (chain *Blockchain) NewTransaction(from, to string, amount int) *Transaction {
+func (chain *Blockchain) NewTransaction(from, to string, amount int) (*Transaction, error) {
 	var txins []TxInput
 	var txous []TxOutput
 	spendable, outs := chain.GetSpendableOutputs(from, amount)
 	if spendable < amount {
-		panic("not enough balance for transaction")
+		return nil, fmt.Errorf("not enough balance")
 	}
 	returnable := spendable - amount
 	for txi, touts := range outs {
 		txid, err := hex.DecodeString(txi)
 		if err != nil {
-			panic(err)
+			return nil, error(err)
 		}
 		for _, out := range touts {
 			txins = append(txins, TxInput{txid, out, from})
@@ -227,5 +228,6 @@ func (chain *Blockchain) NewTransaction(from, to string, amount int) *Transactio
 	txous = append(txous, TxOutput{returnable, from})
 	tx := &Transaction{nil, txins, txous}
 	tx.GenerateID()
-	return tx
+	chain.AddBlock([]*Transaction{tx})
+	return tx, nil
 }

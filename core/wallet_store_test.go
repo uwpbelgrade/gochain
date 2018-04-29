@@ -1,6 +1,7 @@
 package core
 
 import (
+	"log"
 	"os"
 	"testing"
 
@@ -11,7 +12,7 @@ func TestResetStore(t *testing.T) {
 	wstore := makeWalletStore()
 	err := os.Remove(wstore.Config.GetWalletStoreFile())
 	if err != nil {
-		panic(err)
+		log.Println("wallet file not found")
 	}
 	err = wstore.Reset()
 	if err != nil {
