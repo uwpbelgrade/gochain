@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/elliptic"
 	"encoding/gob"
-	"fmt"
 	"io/ioutil"
 	"log"
 )
@@ -27,11 +26,6 @@ func (ws *WalletStore) Reset() error {
 		ws.Save()
 	} else {
 		ws.ClearAll()
-	}
-	err := ws.Load(file)
-	if err != nil {
-		fmt.Printf("failed loading wallets file")
-		return err
 	}
 	return nil
 }

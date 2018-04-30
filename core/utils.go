@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"os"
 
+	"github.com/mr-tron/base58/base58"
 	"golang.org/x/crypto/ripemd160"
 )
 
@@ -24,6 +25,15 @@ func ShaChecksum(payload []byte, length int) []byte {
 	sha := sha256.Sum256(payload)
 	sha2 := sha256.Sum256(sha[:])
 	return sha2[:length]
+}
+
+// PubKeyHash gets the Punlic Key Hash from address
+func PubKeyHash(address string) ([]byte, error) {
+	pubKeyHash, err := base58.Decode(address)
+	if err != nil {
+		return nil, err
+	}
+	return pubKeyHash[1 : len(pubKeyHash)-AddressChecksumLength], nil
 }
 
 //FileExists checks if file exists on path

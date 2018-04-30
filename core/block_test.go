@@ -10,12 +10,12 @@ import _ "github.com/joho/godotenv/autoload"
 
 func TestSerializeDeserialize(t *testing.T) {
 
-	txin1 := TxInput{[]byte("tx1"), 0, "script1"}
-	txin2 := TxInput{[]byte("tx1"), 0, "script1"}
+	txin1 := TxInput{[]byte("tx1"), 0, nil, []byte("script1")}
+	txin2 := TxInput{[]byte("tx2"), 0, nil, []byte("script2")}
 
-	txout1 := TxOutput{100, "address1"}
-	txout2 := TxOutput{200, "address2"}
-	txout3 := TxOutput{300, "address3"}
+	txout1 := TxOutput{100, []byte("address1")}
+	txout2 := TxOutput{200, []byte("address2")}
+	txout3 := TxOutput{300, []byte("address3")}
 
 	t1 := &Transaction{[]byte(nil), []TxInput{txin1, txin2}, []TxOutput{txout1, txout2, txout3}}
 
@@ -40,10 +40,10 @@ func TestSerializeDeserialize(t *testing.T) {
 }
 
 func DemoTransaction() *Transaction {
-	txin1 := TxInput{[]byte("tx1"), 0, "script1"}
-	txin2 := TxInput{[]byte("tx1"), 0, "script1"}
-	txout1 := TxOutput{100, "address1"}
-	txout2 := TxOutput{200, "address2"}
-	txout3 := TxOutput{300, "address3"}
+	txin1 := TxInput{[]byte("tx1"), 0, nil, []byte("script1")}
+	txin2 := TxInput{[]byte("tx1"), 0, nil, []byte("script1")}
+	txout1 := TxOutput{100, []byte("address1")}
+	txout2 := TxOutput{200, []byte("address2")}
+	txout3 := TxOutput{300, []byte("address3")}
 	return &Transaction{[]byte{}, []TxInput{txin1, txin2}, []TxOutput{txout1, txout2, txout3}}
 }

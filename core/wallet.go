@@ -59,6 +59,6 @@ func (wallet *Wallet) IsValidAddress() bool {
 
 // Log prints block info
 func (wallet *Wallet) Log() {
-	template := "WALLET >>>> \nAddress: %x \nPublic key: %x \nPrivate key: %x\n"
+	template := "WALLET >>>> \nAddress: %s \nPublic key: %x \nPrivate key: %x\n"
 	fmt.Printf(template, wallet.GetAddress(), wallet.PublicKey, wallet.PrivateKey)
 }

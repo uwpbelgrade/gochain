@@ -1,7 +1,6 @@
 package core
 
 import (
-	"log"
 	"os"
 	"strconv"
 )
@@ -50,9 +49,6 @@ func (env *EnvConfig) Get(key string) string {
 
 // GetInt gets intiger value from config
 func (env *EnvConfig) GetInt(key string) int {
-	reward, err := strconv.ParseInt(os.Getenv(key), 10, 64)
-	if err != nil {
-		log.Fatalf("error getting %s: %s", key, err)
-	}
+	reward, _ := strconv.ParseInt(os.Getenv(key), 10, 64)
 	return int(reward)
 }

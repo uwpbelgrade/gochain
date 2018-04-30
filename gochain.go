@@ -30,8 +30,12 @@ func main() {
 					Usage: "initializes new blockchain",
 					Action: func(c *cli.Context) error {
 						os.RemoveAll(env.GetDbFile())
-						core.InitChain(env, c.Args().First())
-						log.Println("ok")
+						wstore := core.NewWalletStore(env)
+						wstore.Load(env.GetWalletStoreFile())
+						wallet := wstore.CreateWallet()
+						address := string(wallet.GetAddress())
+						core.InitChain(env, address)
+						log.Printf("genesis address: %s \n", address)
 						return nil
 					},
 				},
@@ -64,6 +68,8 @@ func main() {
 			Usage:   "sends the amount to destination address",
 			Action: func(c *cli.Context) error {
 				chain := core.GetChain(env)
+				wstore := core.NewWalletStore(env)
+				wstore.Load(env.GetWalletStoreFile())
 				from := c.Args().Get(0)
 				to := c.Args().Get(1)
 				amount, erra := strconv.ParseInt(c.Args().Get(2), 10, 64)
@@ -84,8 +90,23 @@ func main() {
 					Usage: "initializes new wallet",
 					Action: func(c *cli.Context) error {
 						wstore := core.NewWalletStore(env)
+						wstore.Load(env.GetWalletStoreFile())
 						wallet := wstore.CreateWallet()
 						log.Printf("wallet created")
+						wallet.Log()
+						return nil
+					},
+				},
+				{
+					Name:  "get",
+					Usage: "gets existing wallet",
+					Action: func(c *cli.Context) error {
+						wstore := core.NewWalletStore(env)
+						erro := wstore.Load(env.GetWalletStoreFile())
+						if erro != nil {
+							panic(erro)
+						}
+						wallet := wstore.GetWallet(c.Args().Get(0))
 						wallet.Log()
 						return nil
 					},

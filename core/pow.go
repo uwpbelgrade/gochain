@@ -18,7 +18,6 @@ func (block *Block) POW() {
 		hash := sha256.Sum256(block.join(nonce))
 		prefix := fmt.Sprintf("%x", hash)[0:Difficulty]
 		if prefixTarget == prefix {
-			fmt.Printf("pow found, hash %x, nonce %d \n", hash, nonce)
 			block.Nonce = nonce
 			block.Hash = hash[:]
 			return

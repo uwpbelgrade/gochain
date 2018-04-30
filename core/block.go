@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/gob"
-	"encoding/hex"
 	"fmt"
 	"time"
 )
@@ -59,11 +58,12 @@ func Deserialize(data []byte) *Block {
 
 // Log prints block info
 func (block *Block) Log() {
-	template := "BLOCK >>>> \nPrevious hash: %x \nData: %x \nTimestamp: %d [%s] \nNonce: %d \nTransactions:\n"
+	template := "BLOCK >>>> \nPrevious hash: %x \nData: %x " +
+		"\nTimestamp: %d [%s] \nNonce: %d \nTransactions:\n"
 	fmt.Printf(template, block.PrevBlockHash, block.Hash,
 		block.Timestamp, time.Unix(block.Timestamp, 0), block.Nonce)
 	for _, t := range block.Transactions {
-		fmt.Printf("t[ID]: %s \n", hex.EncodeToString(t.ID))
+		t.Log()
 	}
 	fmt.Printf("\n")
 }

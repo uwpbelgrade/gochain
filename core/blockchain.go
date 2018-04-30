@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/boltdb/bolt"
+	"github.com/mr-tron/base58/base58"
 )
 
 // Blockchain data structure
@@ -12,6 +13,7 @@ type Blockchain struct {
 	tip    []byte
 	db     *bolt.DB
 	config Config
+	ws     WalletStore
 }
 
 // BlockchainIterator iterates over blocks
@@ -24,6 +26,8 @@ type BlockchainIterator struct {
 // InitChain makes new blockchain
 func InitChain(config Config, address string) *Blockchain {
 	var tip []byte
+	ws := NewWalletStore(config)
+	ws.Load(config.GetWalletStoreFile())
 	db, err := bolt.Open(config.GetDbFile(), 0600, nil)
 	err = db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(config.GetDbBucket()))
@@ -39,7 +43,7 @@ func InitChain(config Config, address string) *Blockchain {
 		}
 		return nil
 	})
-	return &Blockchain{tip, db, config}
+	return &Blockchain{tip, db, config, *ws}
 }
 
 // GetChain makes new blockchain
@@ -49,6 +53,8 @@ func GetChain(config Config) *Blockchain {
 	if err != nil {
 		panic(err)
 	}
+	ws := NewWalletStore(config)
+	ws.Load(config.GetWalletStoreFile())
 	err = db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(config.GetDbBucket()))
 		tip = b.Get([]byte("1"))
@@ -57,7 +63,7 @@ func GetChain(config Config) *Blockchain {
 	if err != nil {
 		panic(err)
 	}
-	return &Blockchain{tip, db, config}
+	return &Blockchain{tip, db, config, *ws}
 }
 
 // AddBlock adds given data as new block in chain
@@ -128,7 +134,7 @@ func (it *BlockchainIterator) Next() *Block {
 }
 
 // GetUnspentTransactions gets unspent transactions
-func (chain *Blockchain) GetUnspentTransactions(address string) []Transaction {
+func (chain *Blockchain) GetUnspentTransactions(pubKeyHash []byte) []Transaction {
 	var unspent []Transaction
 	spent := make(map[string][]int)
 	it := chain.Iterator()
@@ -145,13 +151,13 @@ func (chain *Blockchain) GetUnspentTransactions(address string) []Transaction {
 						}
 					}
 				}
-				if out.CanOutputBeUnlocked(address) {
+				if out.CanOutputBeUnlocked(pubKeyHash) {
 					unspent = append(unspent, *tx)
 				}
 			}
 			if tx.IsCoinbase() == false {
 				for _, in := range tx.Vin {
-					if in.CanUnlockOutput(address) {
+					if in.CanUnlockOutput(pubKeyHash) {
 						inTxID := hex.EncodeToString(in.Txid)
 						spent[inTxID] = append(spent[inTxID], in.Vout)
 					}
@@ -166,11 +172,11 @@ func (chain *Blockchain) GetUnspentTransactions(address string) []Transaction {
 }
 
 // GetUtxo gets unspent transaction outputs
-func (chain *Blockchain) GetUtxo(address string) []TxOutput {
+func (chain *Blockchain) GetUtxo(pubKeyHash []byte) []TxOutput {
 	var unspentOutputs []TxOutput
-	for _, tx := range chain.GetUnspentTransactions(address) {
+	for _, tx := range chain.GetUnspentTransactions(pubKeyHash) {
 		for _, out := range tx.Vout {
-			if out.CanOutputBeUnlocked(address) {
+			if out.CanOutputBeUnlocked(pubKeyHash) {
 				unspentOutputs = append(unspentOutputs, out)
 			}
 		}
@@ -181,7 +187,9 @@ func (chain *Blockchain) GetUtxo(address string) []TxOutput {
 // GetBalance gets balance for address
 func (chain *Blockchain) GetBalance(address string) int {
 	var balance int
-	for _, utxo := range chain.GetUtxo(address) {
+	pubKeyHash, _ := base58.Decode(address)
+	pubKeyHash = pubKeyHash[1 : len(pubKeyHash)-AddressChecksumLength]
+	for _, utxo := range chain.GetUtxo(pubKeyHash) {
 		balance += utxo.Value
 	}
 	return balance
@@ -191,13 +199,15 @@ func (chain *Blockchain) GetBalance(address string) int {
 func (chain *Blockchain) GetSpendableOutputs(address string, amount int) (int, map[string][]int) {
 	total := 0
 	unspent := make(map[string][]int)
-	utxs := chain.GetUnspentTransactions(address)
+	pubKeyHash, _ := base58.Decode(address)
+	pubKeyHash = pubKeyHash[1 : len(pubKeyHash)-AddressChecksumLength]
+	utxs := chain.GetUnspentTransactions(pubKeyHash)
 	for utxi := 0; utxi < len(utxs) && total < amount; utxi++ {
 		utx := utxs[utxi]
 		utxid := hex.EncodeToString(utx.ID)
 		for utxoi := 0; utxoi < len(utx.Vout) && total < amount; utxoi++ {
 			utxo := utx.Vout[utxoi]
-			if utxo.CanOutputBeUnlocked(address) {
+			if utxo.CanOutputBeUnlocked(pubKeyHash) {
 				unspent[utxid] = append(unspent[utxid], utxoi)
 				total += utxo.Value
 			}
@@ -214,18 +224,24 @@ func (chain *Blockchain) NewTransaction(from, to string, amount int) (*Transacti
 	if spendable < amount {
 		return nil, fmt.Errorf("not enough balance")
 	}
+	wFrom := chain.ws.GetWallet(from)
+	if wFrom == nil {
+		fmt.Printf("no such wallet")
+		return nil, fmt.Errorf("no such wallet %s", wFrom)
+	}
 	returnable := spendable - amount
 	for txi, touts := range outs {
 		txid, err := hex.DecodeString(txi)
 		if err != nil {
+			fmt.Printf("error decoding txi")
 			return nil, error(err)
 		}
 		for _, out := range touts {
-			txins = append(txins, TxInput{txid, out, from})
+			txins = append(txins, TxInput{txid, out, nil, wFrom.PublicKey})
 		}
 	}
-	txous = append(txous, TxOutput{amount, to})
-	txous = append(txous, TxOutput{returnable, from})
+	txous = append(txous, *NewTxOutput(amount, to))
+	txous = append(txous, *NewTxOutput(returnable, from))
 	tx := &Transaction{nil, txins, txous}
 	tx.GenerateID()
 	chain.AddBlock([]*Transaction{tx})
