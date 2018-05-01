@@ -93,21 +93,6 @@ func (chain *Blockchain) AddBlock(ts []*Transaction) error {
 	return nil
 }
 
-// Get gets block by hash
-func (chain *Blockchain) Get(hash []byte) *Block {
-	var block *Block
-	err := chain.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(chain.config.GetDbBucket()))
-		encodedBlock := b.Get(hash)
-		block = Deserialize(encodedBlock)
-		return nil
-	})
-	if err != nil {
-		panic(err)
-	}
-	return block
-}
-
 // Iterator makes new Blockchain iterator
 func (chain *Blockchain) Iterator() *BlockchainIterator {
 	return &BlockchainIterator{chain.tip, chain.db, chain.config}

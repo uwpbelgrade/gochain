@@ -103,3 +103,10 @@ func TestGetTransaction(t *testing.T) {
 	assert.Equal(t, tx, &txDb)
 	d.chain.db.Close()
 }
+
+func TestFailGetTransacationUnknown(t *testing.T) {
+	d := newData(true)
+	_, err := d.chain.GetTransaction([]byte{0x00})
+	assert.Contains(t, err.Error(), "transaction not found")
+	d.chain.db.Close()
+}
