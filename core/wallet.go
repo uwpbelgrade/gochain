@@ -18,7 +18,7 @@ const AddressChecksumLength = 4
 
 // Wallet struct
 type Wallet struct {
-	PrivateKey []byte
+	PrivateKey ecdsa.PrivateKey
 	PublicKey  []byte
 }
 
@@ -29,9 +29,8 @@ func NewWallet() *Wallet {
 	if err != nil {
 		panic(err)
 	}
-	privateK := private.D.Bytes()
 	publicK := append(private.PublicKey.X.Bytes(), private.PublicKey.Y.Bytes()...)
-	wallet := &Wallet{privateK, publicK}
+	wallet := &Wallet{*private, publicK}
 	return wallet
 }
 

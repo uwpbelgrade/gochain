@@ -32,3 +32,18 @@ func TestNewCoinbaseTransaction(t *testing.T) {
 	assert.Equal(t, true, tx.IsCoinbase())
 	assert.Equal(t, "data", string(tx.Vin[0].PubKey))
 }
+
+func TestAsSignaturePayload(t *testing.T) {
+	dt := DemoTransaction()
+	dt2 := dt.AsSignaturePayload()
+	assert.Equal(t, dt.ID, dt2.ID)
+	for ii, i := range dt.Vin {
+		assert.Equal(t, i.Txid, dt2.Vin[ii].Txid)
+		assert.Equal(t, i.Vout, dt2.Vin[ii].Vout)
+		assert.Nil(t, dt2.Vin[ii].PubKey)
+		assert.Nil(t, dt2.Vin[ii].Signature)
+	}
+	for oi, o := range dt.Vout {
+		assert.Equal(t, o, dt2.Vout[oi])
+	}
+}

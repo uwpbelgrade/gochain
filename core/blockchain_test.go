@@ -7,12 +7,35 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestInitChain(t *testing.T) {
+type data struct {
+	ws       *WalletStore
+	wallet   *Wallet
+	wallet2  *Wallet
+	address1 string
+	address2 string
+	chain    *Blockchain
+}
+
+func newData(removeFile bool) *data {
+	var w1, w2 *Wallet
+	var a1, a2 string
 	env := &EnvConfig{}
-	os.Remove(env.GetDbFile())
-	chain := InitChain(env, "address")
-	assert.NotNil(t, chain)
-	chain.db.Close()
+	wstore := NewWalletStore(env)
+	if removeFile {
+		os.Remove(env.GetDbFile())
+	}
+	w1 = wstore.CreateWallet()
+	a1 = string(w1.GetAddress())
+	w2 = wstore.CreateWallet()
+	a2 = string(w2.GetAddress())
+	chain := InitChain(env, a1)
+	return &data{wstore, w1, w2, a1, a2, chain}
+}
+
+func TestInitChain(t *testing.T) {
+	d := newData(true)
+	assert.NotNil(t, d.chain)
+	d.chain.db.Close()
 }
 
 func TestGetChain(t *testing.T) {
@@ -24,10 +47,8 @@ func TestGetChain(t *testing.T) {
 }
 
 func TestIterateChain(t *testing.T) {
-	env := &EnvConfig{}
-	os.Remove(env.GetDbFile())
-	chain := InitChain(env, "address")
-	iterator := chain.Iterator()
+	d := newData(true)
+	iterator := d.chain.Iterator()
 	for {
 		block := iterator.Next()
 		assert.NotNil(t, block)
@@ -35,49 +56,50 @@ func TestIterateChain(t *testing.T) {
 			break
 		}
 	}
-	chain.db.Close()
+	d.chain.db.Close()
 }
 
 func TestGetBalance(t *testing.T) {
-	env := &EnvConfig{}
-	os.Remove(env.GetDbFile())
-	ws := NewWalletStore(env)
-	wallet := ws.CreateWallet()
-	address := string(wallet.GetAddress())
-	chain := InitChain(env, address)
-	balance := chain.GetBalance(address)
+	d := newData(true)
+	balance := d.chain.GetBalance(d.address1)
 	assert.Equal(t, 50, balance)
-	chain.db.Close()
+	d.chain.db.Close()
 }
 
 func TestSendTransaction(t *testing.T) {
-	env := &EnvConfig{}
-	os.Remove(env.GetDbFile())
-	ws := NewWalletStore(env)
-	wallet1 := ws.CreateWallet()
-	wallet2 := ws.CreateWallet()
-	address1 := string(wallet1.GetAddress())
-	address2 := string(wallet2.GetAddress())
-	chain := InitChain(env, address1)
-	assert.Equal(t, 50, chain.GetBalance(address1))
-	chain.NewTransaction(address1, address2, 10)
-	assert.Equal(t, 40, chain.GetBalance(address1))
-	assert.Equal(t, 10, chain.GetBalance(address2))
-	chain.db.Close()
+	d := newData(true)
+	assert.Equal(t, 50, d.chain.GetBalance(d.address1))
+	tx, _ := d.chain.NewTransaction(d.address1, d.address2, 10)
+	d.chain.SignTransaction(&d.wallet.PrivateKey, tx)
+	d.chain.AddBlock([]*Transaction{tx})
+	assert.Equal(t, 40, d.chain.GetBalance(d.address1))
+	assert.Equal(t, 10, d.chain.GetBalance(d.address2))
+	d.chain.db.Close()
 }
 
 func TestFailSendTransactionNotEnoughBalance(t *testing.T) {
-	env := &EnvConfig{}
-	os.Remove(env.GetDbFile())
-	ws := NewWalletStore(env)
-	wallet1 := ws.CreateWallet()
-	wallet2 := ws.CreateWallet()
-	address1 := string(wallet1.GetAddress())
-	address2 := string(wallet2.GetAddress())
-	chain := InitChain(env, address1)
-	_, err := chain.NewTransaction(address1, address2, 60)
+	d := newData(true)
+	_, err := d.chain.NewTransaction(d.address1, d.address2, 60)
 	assert.Equal(t, "not enough balance", err.Error())
-	assert.Equal(t, 50, chain.GetBalance(address1))
-	assert.Equal(t, 0, chain.GetBalance(address2))
-	chain.db.Close()
+	assert.Equal(t, 50, d.chain.GetBalance(d.address1))
+	assert.Equal(t, 0, d.chain.GetBalance(d.address2))
+	d.chain.db.Close()
+}
+
+func TestFailSendNotSigned(t *testing.T) {
+	d := newData(true)
+	tx, _ := d.chain.NewTransaction(d.address1, d.address2, 1)
+	err := d.chain.AddBlock([]*Transaction{tx})
+	assert.Contains(t, err.Error(), "invalid transaction")
+	d.chain.db.Close()
+}
+
+func TestGetTransaction(t *testing.T) {
+	d := newData(true)
+	tx, _ := d.chain.NewTransaction(d.address1, d.address2, 1)
+	d.chain.SignTransaction(&d.wallet.PrivateKey, tx)
+	d.chain.AddBlock([]*Transaction{tx})
+	txDb, _ := d.chain.GetTransaction(tx.ID)
+	assert.Equal(t, tx, &txDb)
+	d.chain.db.Close()
 }

@@ -1,7 +1,10 @@
 package core
 
 import (
+	"bytes"
+	"crypto/ecdsa"
 	"encoding/hex"
+	"errors"
 	"fmt"
 
 	"github.com/boltdb/bolt"
@@ -67,8 +70,13 @@ func GetChain(config Config) *Blockchain {
 }
 
 // AddBlock adds given data as new block in chain
-func (chain *Blockchain) AddBlock(ts []*Transaction) {
+func (chain *Blockchain) AddBlock(ts []*Transaction) error {
 	var tip []byte
+	for _, tx := range ts {
+		if chain.VerifyTransaction(tx) != true {
+			return fmt.Errorf("invalid transaction found [txid:%x]", tx.ID)
+		}
+	}
 	err := chain.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(chain.config.GetDbBucket()))
 		tip = b.Get([]byte("1"))
@@ -82,6 +90,7 @@ func (chain *Blockchain) AddBlock(ts []*Transaction) {
 		chain.tip = block.Hash
 		return nil
 	})
+	return nil
 }
 
 // Get gets block by hash
@@ -243,7 +252,46 @@ func (chain *Blockchain) NewTransaction(from, to string, amount int) (*Transacti
 	txous = append(txous, *NewTxOutput(amount, to))
 	txous = append(txous, *NewTxOutput(returnable, from))
 	tx := &Transaction{nil, txins, txous}
-	tx.GenerateID()
-	chain.AddBlock([]*Transaction{tx})
+	tx.ID = tx.Hash()
 	return tx, nil
+}
+
+// GetTransaction gets transaction by id
+func (chain *Blockchain) GetTransaction(id []byte) (Transaction, error) {
+	it := chain.Iterator()
+	for {
+		block := it.Next()
+		for _, tx := range block.Transactions {
+			if bytes.Compare(id, tx.ID) == 0 {
+				return *tx, nil
+			}
+		}
+		if block.PrevBlockHash == nil {
+			break
+		}
+	}
+	return Transaction{}, errors.New("transaction not found")
+}
+
+// GetPreviousTransactions gets previous transactions
+func (chain *Blockchain) GetPreviousTransactions(tx Transaction) map[string]Transaction {
+	ptxs := make(map[string]Transaction)
+	for _, vin := range tx.Vin {
+		ptx, _ := chain.GetTransaction(vin.Txid)
+		txid := hex.EncodeToString(vin.Txid)
+		ptxs[txid] = ptx
+	}
+	return ptxs
+}
+
+// SignTransaction signs transaction
+func (chain *Blockchain) SignTransaction(pk *ecdsa.PrivateKey, tx *Transaction) {
+	previousTxs := chain.GetPreviousTransactions(*tx)
+	tx.Sign(pk, previousTxs)
+}
+
+// VerifyTransaction verifies transaction
+func (chain *Blockchain) VerifyTransaction(tx *Transaction) bool {
+	previousTxs := chain.GetPreviousTransactions(*tx)
+	return tx.Verify(previousTxs)
 }
