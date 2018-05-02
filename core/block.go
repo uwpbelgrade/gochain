@@ -2,7 +2,6 @@ package core
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/gob"
 	"fmt"
 	"time"
@@ -28,10 +27,13 @@ func NewBlock(transactions []*Transaction, prevBlockHash []byte) *Block {
 func (block *Block) HashTransactions() []byte {
 	var hashes [][]byte
 	for _, transaction := range block.Transactions {
-		hashes = append(hashes, transaction.Hash())
+		hashes = append(hashes, transaction.Serialize())
 	}
-	hash := sha256.Sum256(bytes.Join(hashes, []byte{}))
-	return hash[:]
+	if len(hashes) == 0 {
+		return []byte{}
+	}
+	mtree := NewMerkleTree(hashes)
+	return mtree.Root.Data
 }
 
 // Serialize serializes block using encoder
