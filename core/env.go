@@ -9,6 +9,7 @@ import (
 type Config interface {
 	GetDbFile() string
 	GetDbBucket() string
+	GetDbUtxoBucket() string
 	GetBlockReward() int
 	GetGenesisData() string
 	GetWalletStoreFile() string
@@ -25,6 +26,11 @@ func (env *EnvConfig) GetDbFile() string {
 // GetDbBucket gets BOLT_DB_BUCKET
 func (env *EnvConfig) GetDbBucket() string {
 	return env.Get("BOLT_DB_BUCKET")
+}
+
+// GetDbUtxoBucket gets BOLT_DB_UTXO_BUCKET
+func (env *EnvConfig) GetDbUtxoBucket() string {
+	return env.Get("BOLT_DB_UTXO_BUCKET")
 }
 
 // GetBlockReward gets BLOCK_REWARD

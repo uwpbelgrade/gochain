@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -35,7 +36,8 @@ func main() {
 						wallet := wstore.CreateWallet()
 						address := string(wallet.GetAddress())
 						core.InitChain(env, address)
-						log.Printf("genesis address: %s \n", address)
+						log.Printf("genesis wallet")
+						wallet.Log()
 						return nil
 					},
 				},
@@ -76,7 +78,8 @@ func main() {
 				if erra != nil {
 					panic(erra)
 				}
-				chain.NewTransaction(from, to, int(amount))
+				wallet := wstore.GetWallet(from)
+				chain.Send(wallet, to, int(amount))
 				return nil
 			},
 		},
@@ -108,6 +111,25 @@ func main() {
 						}
 						wallet := wstore.GetWallet(c.Args().Get(0))
 						wallet.Log()
+						return nil
+					},
+				},
+				{
+					Name:  "utxos",
+					Usage: "finds utxos",
+					Action: func(c *cli.Context) error {
+						chain := core.GetChain(env)
+						wstore := core.NewWalletStore(env)
+						wstore.Load(env.GetWalletStoreFile())
+						utxos := &core.UtxoStore{Chain: chain}
+						wallet := wstore.GetWallet(c.Args().Get(0))
+						address := string(wallet.GetAddress())
+						pubKeyHash, _ := core.PubKeyHash(address)
+						unspent := utxos.FindUtxo(pubKeyHash)
+						fmt.Printf("UTXOs for address: %s\n", address)
+						for _, utxo := range unspent {
+							utxo.Log()
+						}
 						return nil
 					},
 				},

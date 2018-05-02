@@ -36,8 +36,18 @@ func NewWallet() *Wallet {
 
 // GetAddress gets the wallet address
 func (wallet *Wallet) GetAddress() []byte {
-	publicK := RipeMd160Sha256(wallet.PublicKey)
-	versionedPublicK := append([]byte{Version}, publicK...)
+	return GetAddressFromPublicKey(wallet.PublicKey)
+}
+
+// GetAddressFromPublicKey gets address from public key
+func GetAddressFromPublicKey(publicKey []byte) []byte {
+	pubKeyHash := RipeMd160Sha256(publicKey)
+	return GetAddressFromPublicKeyHash(pubKeyHash)
+}
+
+// GetAddressFromPublicKeyHash gets address from public key hash
+func GetAddressFromPublicKeyHash(publicKeyHash []byte) []byte {
+	versionedPublicK := append([]byte{Version}, publicKeyHash...)
 	checksum := ShaChecksum(versionedPublicK, AddressChecksumLength)
 	address := base58.Encode(append(versionedPublicK, checksum...))
 	return []byte(address)

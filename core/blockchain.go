@@ -46,7 +46,10 @@ func InitChain(config Config, address string) *Blockchain {
 		}
 		return nil
 	})
-	return &Blockchain{tip, db, config, *ws}
+	chain := &Blockchain{tip, db, config, *ws}
+	utxos := UtxoStore{chain}
+	utxos.Reindex()
+	return chain
 }
 
 // GetChain makes new blockchain
@@ -70,11 +73,11 @@ func GetChain(config Config) *Blockchain {
 }
 
 // AddBlock adds given data as new block in chain
-func (chain *Blockchain) AddBlock(ts []*Transaction) error {
+func (chain *Blockchain) AddBlock(ts []*Transaction) (*Block, error) {
 	var tip []byte
 	for _, tx := range ts {
 		if chain.VerifyTransaction(tx) != true {
-			return fmt.Errorf("invalid transaction found [txid:%x]", tx.ID)
+			return nil, fmt.Errorf("invalid transaction found [txid:%x]", tx.ID)
 		}
 	}
 	err := chain.db.View(func(tx *bolt.Tx) error {
@@ -90,7 +93,7 @@ func (chain *Blockchain) AddBlock(ts []*Transaction) error {
 		chain.tip = block.Hash
 		return nil
 	})
-	return nil
+	return block, err
 }
 
 // Iterator makes new Blockchain iterator
@@ -127,9 +130,9 @@ func (it *BlockchainIterator) Next() *Block {
 	return block
 }
 
-// GetUnspentTransactions gets unspent transactions
-func (chain *Blockchain) GetUnspentTransactions(pubKeyHash []byte) []Transaction {
-	var unspent []Transaction
+// FindUtxo gets unspent transactions outputs
+func (chain *Blockchain) FindUtxo() map[string][]TxOutput {
+	unspent := make(map[string][]TxOutput)
 	spent := make(map[string][]int)
 	it := chain.Iterator()
 	for {
@@ -145,16 +148,12 @@ func (chain *Blockchain) GetUnspentTransactions(pubKeyHash []byte) []Transaction
 						}
 					}
 				}
-				if out.CanOutputBeUnlocked(pubKeyHash) {
-					unspent = append(unspent, *tx)
-				}
+				unspent[txID] = append(unspent[txID], out)
 			}
 			if tx.IsCoinbase() == false {
 				for _, in := range tx.Vin {
-					if in.CanUnlockOutput(pubKeyHash) {
-						inTxID := hex.EncodeToString(in.Txid)
-						spent[inTxID] = append(spent[inTxID], in.Vout)
-					}
+					inTxID := hex.EncodeToString(in.Txid)
+					spent[inTxID] = append(spent[inTxID], in.Vout)
 				}
 			}
 		}
@@ -165,56 +164,25 @@ func (chain *Blockchain) GetUnspentTransactions(pubKeyHash []byte) []Transaction
 	return unspent
 }
 
-// GetUtxo gets unspent transaction outputs
-func (chain *Blockchain) GetUtxo(pubKeyHash []byte) []TxOutput {
-	var unspentOutputs []TxOutput
-	for _, tx := range chain.GetUnspentTransactions(pubKeyHash) {
-		for _, out := range tx.Vout {
-			if out.CanOutputBeUnlocked(pubKeyHash) {
-				unspentOutputs = append(unspentOutputs, out)
-			}
-		}
-	}
-	return unspentOutputs
-}
-
 // GetBalance gets balance for address
 func (chain *Blockchain) GetBalance(address string) int {
 	var balance int
+	store := &UtxoStore{chain}
 	pubKeyHash, _ := base58.Decode(address)
 	pubKeyHash = pubKeyHash[1 : len(pubKeyHash)-AddressChecksumLength]
-	for _, utxo := range chain.GetUtxo(pubKeyHash) {
+	for _, utxo := range store.FindUtxo(pubKeyHash) {
 		balance += utxo.Value
 	}
 	return balance
-}
-
-// GetSpendableOutputs gets the spendable TxOutputs and total amount that covers requested amount
-func (chain *Blockchain) GetSpendableOutputs(address string, amount int) (int, map[string][]int) {
-	total := 0
-	unspent := make(map[string][]int)
-	pubKeyHash, _ := base58.Decode(address)
-	pubKeyHash = pubKeyHash[1 : len(pubKeyHash)-AddressChecksumLength]
-	utxs := chain.GetUnspentTransactions(pubKeyHash)
-	for utxi := 0; utxi < len(utxs) && total < amount; utxi++ {
-		utx := utxs[utxi]
-		utxid := hex.EncodeToString(utx.ID)
-		for utxoi := 0; utxoi < len(utx.Vout) && total < amount; utxoi++ {
-			utxo := utx.Vout[utxoi]
-			if utxo.CanOutputBeUnlocked(pubKeyHash) {
-				unspent[utxid] = append(unspent[utxid], utxoi)
-				total += utxo.Value
-			}
-		}
-	}
-	return total, unspent
 }
 
 // NewTransaction generates new transaction from spendable outputs
 func (chain *Blockchain) NewTransaction(from, to string, amount int) (*Transaction, error) {
 	var txins []TxInput
 	var txous []TxOutput
-	spendable, outs := chain.GetSpendableOutputs(from, amount)
+	store := &UtxoStore{chain}
+	pubKeyHash, _ := PubKeyHash(from)
+	spendable, outs := store.FindSpendableOutputs(pubKeyHash, amount)
 	if spendable < amount {
 		return nil, fmt.Errorf("not enough balance")
 	}
@@ -256,6 +224,20 @@ func (chain *Blockchain) GetTransaction(id []byte) (Transaction, error) {
 		}
 	}
 	return Transaction{}, errors.New("transaction not found")
+}
+
+// SendFromAddress sends transaction
+func (chain *Blockchain) SendFromAddress(pk ecdsa.PrivateKey, from string, to string, amount int) error {
+	tx, _ := chain.NewTransaction(from, to, amount)
+	chain.SignTransaction(&pk, tx)
+	block, _ := chain.AddBlock([]*Transaction{tx})
+	store := &UtxoStore{chain}
+	return store.Update(block)
+}
+
+// Send sends transaction
+func (chain *Blockchain) Send(wallet *Wallet, to string, amount int) error {
+	return chain.SendFromAddress(wallet.PrivateKey, string(wallet.GetAddress()), to, amount)
 }
 
 // GetPreviousTransactions gets previous transactions

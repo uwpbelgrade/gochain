@@ -2,7 +2,9 @@ package core
 
 import (
 	"bytes"
+	"encoding/gob"
 	"fmt"
+	"log"
 
 	"github.com/mr-tron/base58/base58"
 )
@@ -33,8 +35,51 @@ func (txout *TxOutput) CanOutputBeUnlocked(pubKeyHash []byte) bool {
 	return bytes.Compare(txout.PubKeyHash, pubKeyHash) == 0
 }
 
+// Serialize serializes TxOutputs
+func (txout *TxOutput) Serialize() []byte {
+	var buff bytes.Buffer
+	enc := gob.NewEncoder(&buff)
+	err := enc.Encode(txout)
+	if err != nil {
+		log.Panic(err)
+	}
+	return buff.Bytes()
+}
+
+// Deserialize deserializes bytes to TxOutputs
+func (txout *TxOutput) Deserialize(data []byte) {
+	decoder := gob.NewDecoder(bytes.NewReader(data))
+	err := decoder.Decode(txout)
+	if err != nil {
+		panic(err)
+	}
+}
+
+// SerializeOutputs deserializes outputs
+func SerializeOutputs(data []TxOutput) []byte {
+	var buff bytes.Buffer
+	enc := gob.NewEncoder(&buff)
+	err := enc.Encode(data)
+	if err != nil {
+		log.Panic(err)
+	}
+	return buff.Bytes()
+}
+
+// DeserializeOutputs deserializes outputs
+func DeserializeOutputs(data []byte) []TxOutput {
+	var outputs []TxOutput
+	dec := gob.NewDecoder(bytes.NewReader(data))
+	err := dec.Decode(&outputs)
+	if err != nil {
+		log.Panic(err)
+	}
+	return outputs
+}
+
 // Log logs txout
 func (txout *TxOutput) Log() {
-	template := "\t\t[val:%d][pubkeyhash:%x]\n"
-	fmt.Printf(template, txout.Value, txout.PubKeyHash)
+	template := "\t\t[val:%d] [address:%s]\n"
+	address := string(GetAddressFromPublicKeyHash(txout.PubKeyHash))
+	fmt.Printf(template, txout.Value, address)
 }

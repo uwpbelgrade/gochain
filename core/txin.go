@@ -22,6 +22,13 @@ func (txin *TxInput) CanUnlockOutput(pubKeyHash []byte) bool {
 
 // Log logs txin
 func (txin *TxInput) Log() {
-	template := "\t\t[tx:%s][out:%d][sign:%x][pubkey:%x]\n"
-	fmt.Printf(template, hex.EncodeToString(txin.Txid), txin.Vout, txin.Signature, txin.PubKey)
+	// fmt.Printf("PUBKEY LEN: %d", len(txin.PubKey))
+	if len(txin.PubKey) != 64 {
+		template := "\t\t[tx:%s]\n\t\t[out:%d] [sign:%d] [pubkey:%s]\n"
+		fmt.Printf(template, hex.EncodeToString(txin.Txid), txin.Vout, len(txin.Signature), string(txin.PubKey))
+	} else {
+		template := "\t\t[tx:%s]\n\t\t[out:%d] [sign:%d] [address:%s]\n"
+		address := string(GetAddressFromPublicKey(txin.PubKey))
+		fmt.Printf(template, hex.EncodeToString(txin.Txid), txin.Vout, len(txin.Signature), address)
+	}
 }
