@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/boltdb/bolt"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -38,6 +39,17 @@ func TestInitChain(t *testing.T) {
 	d.chain.db.Close()
 }
 
+func TestGetBestHeight(t *testing.T) {
+	env := &EnvConfig{}
+	db, err := bolt.Open(env.GetDbFile(), 0600, nil)
+	if err != nil {
+		panic(err)
+	}
+	bestHeight := GetBestHeight(db, env)
+	assert.NotNil(t, bestHeight)
+	db.Close()
+}
+
 func TestGetChain(t *testing.T) {
 	env := &EnvConfig{}
 	chain := GetChain(env)
@@ -66,17 +78,14 @@ func TestGetBalance(t *testing.T) {
 	d.chain.db.Close()
 }
 
-// func TestSendTransaction(t *testing.T) {
-// 	d := newData(true)
-// 	assert.Equal(t, 50, d.chain.GetBalance(d.address1))
-// 	d.chain.Send(d.wallet, d.address2, 10)
-// 	// tx, _ := d.chain.NewTransaction(d.address1, d.address2, 10)
-// 	// d.chain.SignTransaction(&d.wallet.PrivateKey, tx)
-// 	// d.chain.AddBlock([]*Transaction{tx})
-// 	assert.Equal(t, 40, d.chain.GetBalance(d.address1))
-// 	assert.Equal(t, 10, d.chain.GetBalance(d.address2))
-// 	d.chain.db.Close()
-// }
+func TestSendTransaction(t *testing.T) {
+	d := newData(true)
+	assert.Equal(t, 50, d.chain.GetBalance(d.address1))
+	d.chain.Send(d.wallet, d.address2, 10)
+	assert.Equal(t, 40, d.chain.GetBalance(d.address1))
+	assert.Equal(t, 10, d.chain.GetBalance(d.address2))
+	d.chain.db.Close()
+}
 
 func TestFailSendTransactionNotEnoughBalance(t *testing.T) {
 	d := newData(true)
@@ -103,6 +112,19 @@ func TestGetTransaction(t *testing.T) {
 	txDb, _ := d.chain.GetTransaction(tx.ID)
 	assert.Equal(t, tx, &txDb)
 	d.chain.db.Close()
+}
+
+func TestBlockHeight(t *testing.T) {
+	d := newData(true)
+	tx, _ := d.chain.NewTransaction(d.address1, d.address2, 1)
+	d.chain.SignTransaction(&d.wallet.PrivateKey, tx)
+	b1, _ := d.chain.AddBlock([]*Transaction{tx})
+	b2, _ := d.chain.AddBlock([]*Transaction{tx})
+	b3, _ := d.chain.AddBlock([]*Transaction{tx})
+	assert.Equal(t, 1, b1.Height)
+	assert.Equal(t, 2, b2.Height)
+	assert.Equal(t, 3, b3.Height)
+	assert.Equal(t, 3, d.chain.bestHeight)
 }
 
 func TestFailGetTransacationUnknown(t *testing.T) {

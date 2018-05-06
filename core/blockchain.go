@@ -13,10 +13,11 @@ import (
 
 // Blockchain data structure
 type Blockchain struct {
-	tip    []byte
-	db     *bolt.DB
-	config Config
-	ws     WalletStore
+	tip        []byte
+	db         *bolt.DB
+	bestHeight int
+	config     Config
+	ws         WalletStore
 }
 
 // BlockchainIterator iterates over blocks
@@ -36,7 +37,7 @@ func InitChain(config Config, address string) *Blockchain {
 		b := tx.Bucket([]byte(config.GetDbBucket()))
 		if b == nil {
 			ts := NewCoinbaseTransaction(address, config.GetGenesisData(), config.GetBlockReward())
-			gen := NewBlock([]*Transaction{ts}, []byte{})
+			gen := NewBlock([]*Transaction{ts}, []byte{}, 0)
 			b, err = tx.CreateBucket([]byte(config.GetDbBucket()))
 			err = b.Put(gen.Hash, gen.Serialize())
 			err = b.Put([]byte("1"), gen.Hash)
@@ -46,10 +47,26 @@ func InitChain(config Config, address string) *Blockchain {
 		}
 		return nil
 	})
-	chain := &Blockchain{tip, db, config, *ws}
+	chain := &Blockchain{tip, db, 0, config, *ws}
 	utxos := UtxoStore{chain}
 	utxos.Reindex()
 	return chain
+}
+
+// GetBestHeight gets the max block height
+func GetBestHeight(db *bolt.DB, config Config) int {
+	var lastBlock Block
+	err := db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(config.GetDbBucket()))
+		lastHash := bucket.Get([]byte("1"))
+		blockBytes := bucket.Get(lastHash)
+		lastBlock = *Deserialize(blockBytes)
+		return nil
+	})
+	if err != nil {
+		panic(err)
+	}
+	return lastBlock.Height
 }
 
 // GetChain makes new blockchain
@@ -69,7 +86,8 @@ func GetChain(config Config) *Blockchain {
 	if err != nil {
 		panic(err)
 	}
-	return &Blockchain{tip, db, config, *ws}
+	bestHeight := GetBestHeight(db, config)
+	return &Blockchain{tip, db, bestHeight, config, *ws}
 }
 
 // AddBlock adds given data as new block in chain
@@ -85,7 +103,8 @@ func (chain *Blockchain) AddBlock(ts []*Transaction) (*Block, error) {
 		tip = b.Get([]byte("1"))
 		return nil
 	})
-	block := NewBlock(ts, tip)
+	newBestHeight := GetBestHeight(chain.db, chain.config) + 1
+	block := NewBlock(ts, tip, newBestHeight)
 	err = chain.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(chain.config.GetDbBucket()))
 		err = b.Put(block.Hash, block.Serialize())
@@ -93,6 +112,7 @@ func (chain *Blockchain) AddBlock(ts []*Transaction) (*Block, error) {
 		chain.tip = block.Hash
 		return nil
 	})
+	chain.bestHeight = newBestHeight
 	return block, err
 }
 

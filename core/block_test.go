@@ -25,8 +25,8 @@ func TestSerializeDeserialize(t *testing.T) {
 
 	t1 := &Transaction{[]byte(nil), []TxInput{txin1, txin2}, []TxOutput{txout1, txout2, txout3}}
 
-	block1 := NewBlock([]*Transaction{}, nil)
-	block2 := NewBlock([]*Transaction{t1}, block1.Hash)
+	block1 := NewBlock([]*Transaction{}, nil, 1)
+	block2 := NewBlock([]*Transaction{t1}, block1.Hash, 2)
 
 	block := Deserialize(block2.Serialize())
 
@@ -34,6 +34,7 @@ func TestSerializeDeserialize(t *testing.T) {
 	assert.Equal(t, block2.PrevBlockHash, block.PrevBlockHash)
 	assert.Equal(t, block2.Hash, block.Hash)
 	assert.Equal(t, block2.Nonce, block.Nonce)
+	assert.Equal(t, block2.Height, block.Height)
 
 	for i, tx := range block.Transactions {
 		tx2 := block2.Transactions[i]
