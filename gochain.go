@@ -135,6 +135,43 @@ func main() {
 				},
 			},
 		},
+		{
+			Name:    "nodes",
+			Aliases: []string{"w"},
+			Usage:   "nodes actions",
+			Subcommands: []cli.Command{
+				{
+					Name:  "list",
+					Usage: "lists running nodes",
+					Action: func(c *cli.Context) error {
+						log.Printf("running nodes: \n")
+						// TODO:
+						return nil
+					},
+				},
+				{
+					Name:  "start",
+					Usage: "starts new node",
+					Action: func(c *cli.Context) error {
+						port := c.Args().Get(0)
+						mode := c.Args().Get(1)
+						// TODO:
+						log.Printf("%s node started on port %s \n", mode, port)
+						return nil
+					},
+				},
+				{
+					Name:  "stop",
+					Usage: "stops running node",
+					Action: func(c *cli.Context) error {
+						port := c.Args().Get(0)
+						log.Printf("node %s stopped \n", port)
+						// TODO:
+						return nil
+					},
+				},
+			},
+		},
 	}
 	err = app.Run(os.Args)
 	if err != nil {
