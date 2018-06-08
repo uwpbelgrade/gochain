@@ -165,8 +165,8 @@ func main() {
 					Usage: "stops running node",
 					Action: func(c *cli.Context) error {
 						port := c.Args().Get(0)
-						log.Printf("node %s stopped \n", port)
 						// TODO:
+						log.Printf("node %s stopped \n", port)
 						return nil
 					},
 				},
