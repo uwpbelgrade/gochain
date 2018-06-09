@@ -95,6 +95,11 @@ func main() {
 					Usage: "initializes new wallet",
 					Action: func(c *cli.Context) error {
 						nodeID := c.Args().Get(0)
+						if nodeID == "" {
+							log.Printf("nodeID is mandatory")
+							return nil
+						}
+						log.Printf("creating wallet for node: %s", nodeID)
 						wstore := core.NewWalletStore(env, nodeID)
 						wstore.Load(env.GetWalletStoreFile(nodeID))
 						wallet := wstore.CreateWallet()
@@ -152,7 +157,8 @@ func main() {
 						port := c.Args().Get(0)
 						mode := c.Args().Get(1)
 						minersAddress := c.Args().Get(2)
-						core.StartNode(env, port, minersAddress)
+						node := core.NewNode(env, port, minersAddress)
+						node.Start()
 						log.Printf("%s node started on port %s \n", mode, port)
 						return nil
 					},

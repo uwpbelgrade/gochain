@@ -7,10 +7,15 @@ import (
 	"log"
 )
 
+// ProtocolVersion number
+const ProtocolVersion = 1.0
+
 // CommandLength in bytes
 const CommandLength = 12
 
-var nodes []string
+var host = "localhost"
+
+var nodes = []string{"localhost:3000"}
 
 // VersionCommand struct
 type VersionCommand struct {
@@ -19,36 +24,9 @@ type VersionCommand struct {
 	Height  int
 }
 
-// SendVersionCommand handles send version command
-func SendVersionCommand(address string, bc *Blockchain) {
-
-}
-
-// SendGetBlocksCommand handles sending get block command
-func SendGetBlocksCommand(address string) {
-
-}
-
-// ReceiveVersionCommand handles receiving version command
-func ReceiveVersionCommand(request []byte, bc *Blockchain, env Config) {
-	var buff bytes.Buffer
-	var data VersionCommand
-	buff.Write(request[CommandLength:])
-	dec := gob.NewDecoder(&buff)
-	err := dec.Decode(&data)
-	if err != nil {
-		log.Panic(err)
-	}
-	myBestHeight := GetBestHeight(bc.db, env)
-	foreignerBestHeight := data.Height
-	if myBestHeight < foreignerBestHeight {
-		SendGetBlocksCommand(data.Origin)
-	} else if myBestHeight > foreignerBestHeight {
-		SendVersionCommand(data.Origin, bc)
-	}
-	if !KnownNode(data.Origin) {
-		nodes = append(nodes, data.Origin)
-	}
+// GetBlocksCommand struct
+type GetBlocksCommand struct {
+	Origin string
 }
 
 // ToBytes converts command to bytes
