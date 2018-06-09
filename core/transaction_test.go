@@ -7,7 +7,7 @@ import (
 )
 
 func TestTxInLocking(t *testing.T) {
-	ws := NewWalletStore(&EnvConfig{})
+	ws := NewWalletStore(&EnvConfig{}, "1")
 	wallet := ws.CreateWallet()
 	address := string(wallet.GetAddress())
 	txin := &TxInput{[]byte("1"), 0, nil, wallet.PublicKey}
@@ -16,7 +16,7 @@ func TestTxInLocking(t *testing.T) {
 }
 
 func TestTxOutLocking(t *testing.T) {
-	ws := NewWalletStore(&EnvConfig{})
+	ws := NewWalletStore(&EnvConfig{}, "1")
 	wallet := ws.CreateWallet()
 	address := string(wallet.GetAddress())
 	txout := NewTxOutput(10, address)
@@ -25,7 +25,7 @@ func TestTxOutLocking(t *testing.T) {
 }
 
 func TestNewCoinbaseTransaction(t *testing.T) {
-	ws := NewWalletStore(&EnvConfig{})
+	ws := NewWalletStore(&EnvConfig{}, "1")
 	w := ws.CreateWallet()
 	tx := NewCoinbaseTransaction(string(w.GetAddress()), "data", 50)
 	assert.Equal(t, 50, tx.Vout[0].Value)

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 )
@@ -12,7 +13,7 @@ type Config interface {
 	GetDbUtxoBucket() string
 	GetBlockReward() int
 	GetGenesisData() string
-	GetWalletStoreFile() string
+	GetWalletStoreFile(nodeID string) string
 }
 
 // EnvConfig implements Config via environment
@@ -44,8 +45,8 @@ func (env *EnvConfig) GetGenesisData() string {
 }
 
 // GetWalletStoreFile gets WALLET_STORE_FILE
-func (env *EnvConfig) GetWalletStoreFile() string {
-	return env.Get("WALLET_STORE_FILE")
+func (env *EnvConfig) GetWalletStoreFile(nodeID string) string {
+	return fmt.Sprintf(env.Get("WALLET_STORE_FILE"), nodeID)
 }
 
 // Get gets string value from config
@@ -55,6 +56,6 @@ func (env *EnvConfig) Get(key string) string {
 
 // GetInt gets intiger value from config
 func (env *EnvConfig) GetInt(key string) int {
-	reward, _ := strconv.ParseInt(os.Getenv(key), 10, 64)
-	return int(reward)
+	value, _ := strconv.ParseInt(os.Getenv(key), 10, 64)
+	return int(value)
 }

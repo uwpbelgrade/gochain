@@ -21,7 +21,7 @@ func newData(removeFile bool) *data {
 	var w1, w2 *Wallet
 	var a1, a2 string
 	env := &EnvConfig{}
-	wstore := NewWalletStore(env)
+	wstore := NewWalletStore(env, "1")
 	if removeFile {
 		os.Remove(env.GetDbFile())
 	}
@@ -29,7 +29,7 @@ func newData(removeFile bool) *data {
 	a1 = string(w1.GetAddress())
 	w2 = wstore.CreateWallet()
 	a2 = string(w2.GetAddress())
-	chain := InitChain(env, a1)
+	chain := InitChain(env, a1, "1")
 	return &data{wstore, w1, w2, a1, a2, chain}
 }
 
@@ -52,7 +52,7 @@ func TestGetBestHeight(t *testing.T) {
 
 func TestGetChain(t *testing.T) {
 	env := &EnvConfig{}
-	chain := GetChain(env)
+	chain := GetChain(env, "1")
 	assert.NotNil(t, chain)
 	chain.Log()
 	chain.db.Close()

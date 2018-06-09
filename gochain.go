@@ -30,12 +30,13 @@ func main() {
 					Name:  "init",
 					Usage: "initializes new blockchain",
 					Action: func(c *cli.Context) error {
+						nodeID := "0"
 						os.RemoveAll(env.GetDbFile())
-						wstore := core.NewWalletStore(env)
-						wstore.Load(env.GetWalletStoreFile())
+						wstore := core.NewWalletStore(env, nodeID)
+						wstore.Load(env.GetWalletStoreFile(nodeID))
 						wallet := wstore.CreateWallet()
 						address := string(wallet.GetAddress())
-						core.InitChain(env, address)
+						core.InitChain(env, address, nodeID)
 						log.Printf("genesis wallet")
 						wallet.Log()
 						return nil
@@ -45,7 +46,7 @@ func main() {
 					Name:  "print",
 					Usage: "prints all blocks in the chain",
 					Action: func(c *cli.Context) error {
-						chain := core.GetChain(env)
+						chain := core.GetChain(env, "0")
 						chain.Log()
 						log.Println("ok")
 						return nil
@@ -58,7 +59,7 @@ func main() {
 			Aliases: []string{"b"},
 			Usage:   "get the balance of address",
 			Action: func(c *cli.Context) error {
-				chain := core.GetChain(env)
+				chain := core.GetChain(env, "0")
 				balance := chain.GetBalance(c.Args().First())
 				log.Printf("balance: %d", balance)
 				return nil
@@ -69,12 +70,13 @@ func main() {
 			Aliases: []string{"s"},
 			Usage:   "sends the amount to destination address",
 			Action: func(c *cli.Context) error {
-				chain := core.GetChain(env)
-				wstore := core.NewWalletStore(env)
-				wstore.Load(env.GetWalletStoreFile())
-				from := c.Args().Get(0)
-				to := c.Args().Get(1)
-				amount, erra := strconv.ParseInt(c.Args().Get(2), 10, 64)
+				nodeID := c.Args().Get(0)
+				chain := core.GetChain(env, nodeID)
+				wstore := core.NewWalletStore(env, nodeID)
+				wstore.Load(env.GetWalletStoreFile(nodeID))
+				from := c.Args().Get(1)
+				to := c.Args().Get(2)
+				amount, erra := strconv.ParseInt(c.Args().Get(3), 10, 64)
 				if erra != nil {
 					panic(erra)
 				}
@@ -92,8 +94,9 @@ func main() {
 					Name:  "new",
 					Usage: "initializes new wallet",
 					Action: func(c *cli.Context) error {
-						wstore := core.NewWalletStore(env)
-						wstore.Load(env.GetWalletStoreFile())
+						nodeID := c.Args().Get(0)
+						wstore := core.NewWalletStore(env, nodeID)
+						wstore.Load(env.GetWalletStoreFile(nodeID))
 						wallet := wstore.CreateWallet()
 						log.Printf("wallet created")
 						wallet.Log()
@@ -104,8 +107,9 @@ func main() {
 					Name:  "get",
 					Usage: "gets existing wallet",
 					Action: func(c *cli.Context) error {
-						wstore := core.NewWalletStore(env)
-						erro := wstore.Load(env.GetWalletStoreFile())
+						nodeID := c.Args().Get(0)
+						wstore := core.NewWalletStore(env, nodeID)
+						erro := wstore.Load(env.GetWalletStoreFile(nodeID))
 						if erro != nil {
 							panic(erro)
 						}
@@ -118,9 +122,10 @@ func main() {
 					Name:  "utxos",
 					Usage: "finds utxos",
 					Action: func(c *cli.Context) error {
-						chain := core.GetChain(env)
-						wstore := core.NewWalletStore(env)
-						wstore.Load(env.GetWalletStoreFile())
+						nodeID := c.Args().Get(0)
+						chain := core.GetChain(env, nodeID)
+						wstore := core.NewWalletStore(env, nodeID)
+						wstore.Load(env.GetWalletStoreFile(nodeID))
 						utxos := &core.UtxoStore{Chain: chain}
 						wallet := wstore.GetWallet(c.Args().Get(0))
 						address := string(wallet.GetAddress())
@@ -141,32 +146,14 @@ func main() {
 			Usage:   "nodes actions",
 			Subcommands: []cli.Command{
 				{
-					Name:  "list",
-					Usage: "lists running nodes",
-					Action: func(c *cli.Context) error {
-						log.Printf("running nodes: \n")
-						// TODO:
-						return nil
-					},
-				},
-				{
 					Name:  "start",
 					Usage: "starts new node",
 					Action: func(c *cli.Context) error {
 						port := c.Args().Get(0)
 						mode := c.Args().Get(1)
-						// TODO:
+						minersAddress := c.Args().Get(2)
+						core.StartNode(env, port, minersAddress)
 						log.Printf("%s node started on port %s \n", mode, port)
-						return nil
-					},
-				},
-				{
-					Name:  "stop",
-					Usage: "stops running node",
-					Action: func(c *cli.Context) error {
-						port := c.Args().Get(0)
-						// TODO:
-						log.Printf("node %s stopped \n", port)
 						return nil
 					},
 				},

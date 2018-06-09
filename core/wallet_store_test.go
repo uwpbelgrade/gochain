@@ -9,25 +9,25 @@ import (
 )
 
 func TestResetStore(t *testing.T) {
-	wstore := makeWalletStore()
-	err := os.Remove(wstore.Config.GetWalletStoreFile())
+	wstore := makeWalletStore("1")
+	err := os.Remove(wstore.Config.GetWalletStoreFile(wstore.NodeID))
 	if err != nil {
 		log.Println("wallet file not found")
 	}
-	err = wstore.Reset()
+	err = wstore.Reset(wstore.NodeID)
 	if err != nil {
 		panic(err)
 	}
-	err = wstore.Reset()
+	err = wstore.Reset(wstore.NodeID)
 	if err != nil {
 		panic(err)
 	}
 }
 
 func TestCreateWallet(t *testing.T) {
-	wstore := makeWalletStore()
+	wstore := makeWalletStore("1")
 	wallet := wstore.CreateWallet()
-	wstore.Load(wstore.Config.GetWalletStoreFile())
+	wstore.Load(wstore.Config.GetWalletStoreFile(wstore.NodeID))
 	wallet2 := wstore.GetWallet(string(wallet.GetAddress()))
 	assert.NotNil(t, wallet)
 	assert.NotNil(t, wallet2)
@@ -35,16 +35,16 @@ func TestCreateWallet(t *testing.T) {
 }
 
 func TestDeleteWallet(t *testing.T) {
-	wstore := makeWalletStore()
+	wstore := makeWalletStore("1")
 	wallet := wstore.CreateWallet()
 	address := string(wallet.GetAddress())
 	wstore.DeleteWallet(address)
 	assert.Nil(t, wstore.GetWallet(address))
 }
 
-func makeWalletStore() *WalletStore {
+func makeWalletStore(nodeID string) *WalletStore {
 	wallets := make(map[string]*Wallet)
 	config := &EnvConfig{}
-	wstore := &WalletStore{wallets, config}
+	wstore := &WalletStore{wallets, config, nodeID}
 	return wstore
 }

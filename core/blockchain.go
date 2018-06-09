@@ -28,10 +28,10 @@ type BlockchainIterator struct {
 }
 
 // InitChain makes new blockchain
-func InitChain(config Config, address string) *Blockchain {
+func InitChain(config Config, address string, nodeID string) *Blockchain {
 	var tip []byte
-	ws := NewWalletStore(config)
-	ws.Load(config.GetWalletStoreFile())
+	ws := NewWalletStore(config, nodeID)
+	ws.Load(config.GetWalletStoreFile(nodeID))
 	db, err := bolt.Open(config.GetDbFile(), 0600, nil)
 	err = db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(config.GetDbBucket()))
@@ -70,14 +70,14 @@ func GetBestHeight(db *bolt.DB, config Config) int {
 }
 
 // GetChain makes new blockchain
-func GetChain(config Config) *Blockchain {
+func GetChain(config Config, nodeID string) *Blockchain {
 	var tip []byte
 	db, err := bolt.Open(config.GetDbFile(), 0600, nil)
 	if err != nil {
 		panic(err)
 	}
-	ws := NewWalletStore(config)
-	ws.Load(config.GetWalletStoreFile())
+	ws := NewWalletStore(config, nodeID)
+	ws.Load(config.GetWalletStoreFile(nodeID))
 	err = db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(config.GetDbBucket()))
 		tip = b.Get([]byte("1"))
