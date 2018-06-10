@@ -161,11 +161,10 @@ func main() {
 					Usage: "starts new node",
 					Action: func(c *cli.Context) error {
 						port := c.Args().Get(0)
-						mode := c.Args().Get(1)
 						minersAddress := c.Args().Get(2)
 						node := core.NewNode(env, port, minersAddress)
 						node.Start()
-						log.Printf("%s node started on port %s \n", mode, port)
+						log.Printf("node started on port %s \n", port)
 						return nil
 					},
 				},
