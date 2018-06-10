@@ -30,8 +30,8 @@ func main() {
 					Name:  "init",
 					Usage: "initializes new blockchain",
 					Action: func(c *cli.Context) error {
-						nodeID := "0"
-						os.RemoveAll(env.GetDbFile())
+						nodeID := c.Args().Get(0)
+						os.RemoveAll(env.GetDbFile(nodeID))
 						wstore := core.NewWalletStore(env, nodeID)
 						wstore.Load(env.GetWalletStoreFile(nodeID))
 						wallet := wstore.CreateWallet()
@@ -46,7 +46,8 @@ func main() {
 					Name:  "print",
 					Usage: "prints all blocks in the chain",
 					Action: func(c *cli.Context) error {
-						chain := core.GetChain(env, "0")
+						nodeID := c.Args().Get(0)
+						chain := core.GetChain(env, nodeID)
 						chain.Log()
 						log.Println("ok")
 						return nil
@@ -59,7 +60,8 @@ func main() {
 			Aliases: []string{"b"},
 			Usage:   "get the balance of address",
 			Action: func(c *cli.Context) error {
-				chain := core.GetChain(env, "0")
+				nodeID := c.Args().Get(0)
+				chain := core.GetChain(env, nodeID)
 				balance := chain.GetBalance(c.Args().First())
 				log.Printf("balance: %d", balance)
 				return nil
@@ -81,6 +83,10 @@ func main() {
 					panic(erra)
 				}
 				wallet := wstore.GetWallet(from)
+				if wallet == nil {
+					panic(fmt.Sprintf("wallet %s not found", from))
+				}
+				fmt.Printf("sending %d from %s to %s\n", amount, wallet.GetAddress(), to)
 				chain.Send(wallet, to, int(amount))
 				return nil
 			},

@@ -8,7 +8,7 @@ import (
 
 // Config specifies configuration properties
 type Config interface {
-	GetDbFile() string
+	GetDbFile(nodeID string) string
 	GetDbBucket() string
 	GetDbUtxoBucket() string
 	GetBlockReward() int
@@ -20,8 +20,8 @@ type Config interface {
 type EnvConfig struct{}
 
 // GetDbFile gets BOLT_DB_FILE
-func (env *EnvConfig) GetDbFile() string {
-	return env.Get("BOLT_DB_FILE")
+func (env *EnvConfig) GetDbFile(nodeID string) string {
+	return fmt.Sprintf(env.Get("BOLT_DB_FILE"), nodeID)
 }
 
 // GetDbBucket gets BOLT_DB_BUCKET

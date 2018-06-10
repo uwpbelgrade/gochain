@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
-	"os"
 )
 
 // Node struct
@@ -19,18 +18,18 @@ type Node struct {
 	Env        Config
 	Chain      *Blockchain
 	MinersAdds string
+	Mempool    map[string]Transaction
 }
 
 // NewNode creates new node
 func NewNode(env Config, port string, minersAddress string) *Node {
 	address := net.JoinHostPort(host, port)
-	os.RemoveAll(env.GetDbFile())
 	wstore := NewWalletStore(env, port)
 	wstore.Load(env.GetWalletStoreFile(port))
 	wallet := wstore.CreateWallet()
 	coinbaseAddress := string(wallet.GetAddress())
 	chain := InitChain(env, coinbaseAddress, port)
-	return &Node{host, port, address, env, chain, minersAddress}
+	return &Node{host, port, address, env, chain, minersAddress, make(map[string]Transaction)}
 }
 
 // Start starts node at specific port server
@@ -67,6 +66,9 @@ func handleConnection(conn net.Conn, node *Node, env Config) {
 	switch command {
 	case "version":
 		node.ReceiveVersionCommand(payload, env, localAddr)
+	case "getblocks":
+		node.ReceiveGetBlocksCommand(payload, env, localAddr)
+
 	default:
 		panic("unknown command")
 	}
@@ -87,6 +89,14 @@ func (node *Node) SendVersionCommand(address string, bc *Blockchain, env Config)
 func (node *Node) SendGetBlocksCommand(address string) {
 	payload := EncodeData(GetBlocksCommand{node.Address})
 	request := append(ToBytes("getblocks"), payload...)
+	node.SendData(address, request)
+}
+
+// SendBlock sends block
+func (node *Node) SendBlock(address string, b *Block) {
+	data := BlocksCommand{address, b.Serialize()}
+	payload := EncodeData(data)
+	request := append(ToBytes("block"), payload...)
 	node.SendData(address, request)
 }
 
@@ -115,6 +125,20 @@ func (node *Node) ReceiveVersionCommand(request []byte, env Config, remoteAddr s
 		fmt.Printf("registering unknown node: %s (%s)\n", data.Origin, remoteAddr)
 		nodes = append(nodes, data.Origin)
 	}
+}
+
+// ReceiveGetBlocksCommand sends inventory on received blocks command
+func (node *Node) ReceiveGetBlocksCommand(request []byte, env Config, remoteAddr string) {
+	blocks := node.Chain.GetBlockHashes()
+	node.SendInventory(remoteAddr, "block", blocks)
+}
+
+// SendInventory sends inventory of specific type
+func (node *Node) SendInventory(address, kind string, items [][]byte) {
+	inventory := InventoryCommand{node.Address, kind, items}
+	payload := EncodeData(inventory)
+	request := append(ToBytes("inventory"), payload...)
+	node.SendData(address, request)
 }
 
 // SendData sends data to address

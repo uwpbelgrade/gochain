@@ -18,18 +18,19 @@ type data struct {
 }
 
 func newData(removeFile bool) *data {
+	var nodeID = "1"
 	var w1, w2 *Wallet
 	var a1, a2 string
 	env := &EnvConfig{}
-	wstore := NewWalletStore(env, "1")
+	wstore := NewWalletStore(env, nodeID)
 	if removeFile {
-		os.Remove(env.GetDbFile())
+		os.Remove(env.GetDbFile(nodeID))
 	}
 	w1 = wstore.CreateWallet()
 	a1 = string(w1.GetAddress())
 	w2 = wstore.CreateWallet()
 	a2 = string(w2.GetAddress())
-	chain := InitChain(env, a1, "1")
+	chain := InitChain(env, a1, nodeID)
 	return &data{wstore, w1, w2, a1, a2, chain}
 }
 
@@ -40,8 +41,9 @@ func TestInitChain(t *testing.T) {
 }
 
 func TestGetBestHeight(t *testing.T) {
+	var nodeID = "1"
 	env := &EnvConfig{}
-	db, err := bolt.Open(env.GetDbFile(), 0600, nil)
+	db, err := bolt.Open(env.GetDbFile(nodeID), 0600, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -51,8 +53,9 @@ func TestGetBestHeight(t *testing.T) {
 }
 
 func TestGetChain(t *testing.T) {
+	var nodeID = "1"
 	env := &EnvConfig{}
-	chain := GetChain(env, "1")
+	chain := GetChain(env, nodeID)
 	assert.NotNil(t, chain)
 	chain.Log()
 	chain.db.Close()

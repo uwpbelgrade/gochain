@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/boltdb/bolt"
 	"github.com/mr-tron/base58/base58"
@@ -32,7 +33,7 @@ func InitChain(config Config, address string, nodeID string) *Blockchain {
 	var tip []byte
 	ws := NewWalletStore(config, nodeID)
 	ws.Load(config.GetWalletStoreFile(nodeID))
-	db, err := bolt.Open(config.GetDbFile(), 0600, nil)
+	db, err := bolt.Open(config.GetDbFile(nodeID), 0600, nil)
 	err = db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(config.GetDbBucket()))
 		if b == nil {
@@ -42,6 +43,7 @@ func InitChain(config Config, address string, nodeID string) *Blockchain {
 			err = b.Put(gen.Hash, gen.Serialize())
 			err = b.Put([]byte("1"), gen.Hash)
 			tip = gen.Hash
+			fmt.Printf("bucket %s created [nodeID:%s]\n", config.GetDbBucket(), nodeID)
 		} else {
 			tip = b.Get([]byte("1"))
 		}
@@ -49,7 +51,9 @@ func InitChain(config Config, address string, nodeID string) *Blockchain {
 	})
 	chain := &Blockchain{tip, db, 0, config, *ws}
 	utxos := UtxoStore{chain}
+	fmt.Printf("chain initialized [nodeID:%s] \n", nodeID)
 	utxos.Reindex()
+	fmt.Printf("utxo reindexing completed [nodeID:%s] \n", nodeID)
 	return chain
 }
 
@@ -61,6 +65,7 @@ func GetBestHeight(db *bolt.DB, config Config) int {
 		lastHash := bucket.Get([]byte("1"))
 		blockBytes := bucket.Get(lastHash)
 		lastBlock = *Deserialize(blockBytes)
+		fmt.Printf("getting best height from bucket: %s found: %s transactions: %d\n", config.GetDbBucket(), strconv.FormatBool(bucket != nil), len(lastBlock.Transactions))
 		return nil
 	})
 	if err != nil {
@@ -72,14 +77,16 @@ func GetBestHeight(db *bolt.DB, config Config) int {
 // GetChain makes new blockchain
 func GetChain(config Config, nodeID string) *Blockchain {
 	var tip []byte
-	db, err := bolt.Open(config.GetDbFile(), 0600, nil)
+	db, err := bolt.Open(config.GetDbFile(nodeID), 0600, nil)
 	if err != nil {
 		panic(err)
 	}
+	fmt.Printf("opening chain %s, db ok %s\n", nodeID, strconv.FormatBool(db != nil))
 	ws := NewWalletStore(config, nodeID)
 	ws.Load(config.GetWalletStoreFile(nodeID))
 	err = db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(config.GetDbBucket()))
+		fmt.Printf("bucket %s found, %s\n", config.GetDbBucket(), strconv.FormatBool(b != nil))
 		tip = b.Get([]byte("1"))
 		return nil
 	})
@@ -226,6 +233,7 @@ func (chain *Blockchain) NewTransaction(from, to string, amount int) (*Transacti
 	txous = append(txous, *NewTxOutput(returnable, from))
 	tx := &Transaction{nil, txins, txous}
 	tx.ID = tx.Hash()
+	fmt.Printf("produced transaction [id:%x] [from:%s] [to:%s] [amount:%d]\n", tx.ID, from, to, amount)
 	return tx, nil
 }
 
@@ -249,10 +257,26 @@ func (chain *Blockchain) GetTransaction(id []byte) (Transaction, error) {
 // SendFromAddress sends transaction
 func (chain *Blockchain) SendFromAddress(pk ecdsa.PrivateKey, from string, to string, amount int) error {
 	tx, _ := chain.NewTransaction(from, to, amount)
+	fmt.Printf("signing transactions\n")
+	tx.Log()
 	chain.SignTransaction(&pk, tx)
 	block, _ := chain.AddBlock([]*Transaction{tx})
 	store := &UtxoStore{chain}
 	return store.Update(block)
+}
+
+// GetBlockHashes returns a list of all blocks hashes
+func (chain *Blockchain) GetBlockHashes() [][]byte {
+	var blocks [][]byte
+	bci := chain.Iterator()
+	for {
+		block := bci.Next()
+		blocks = append(blocks, block.Hash)
+		if len(block.PrevBlockHash) == 0 {
+			break
+		}
+	}
+	return blocks
 }
 
 // Send sends transaction

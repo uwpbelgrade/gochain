@@ -29,6 +29,35 @@ type GetBlocksCommand struct {
 	Origin string
 }
 
+// InventoryCommand struct
+type InventoryCommand struct {
+	Origin string
+	Type   string
+	Data   [][]byte
+}
+
+// BlocksCommand struct
+type BlocksCommand struct {
+	Origin string
+	Blocks []byte
+}
+
+// TransactionsCommand struct
+type TransactionsCommand struct {
+	Origin       string
+	Transactions []Transaction
+}
+
+// KnownNode checks if node is known
+func KnownNode(address string) bool {
+	for _, node := range nodes {
+		if node == address {
+			return true
+		}
+	}
+	return false
+}
+
 // ToBytes converts command to bytes
 func ToBytes(command string) []byte {
 	var bytes [CommandLength]byte
@@ -63,14 +92,4 @@ func EncodeData(data interface{}) []byte {
 		log.Panic(err)
 	}
 	return buff.Bytes()
-}
-
-// KnownNode checks if node is known
-func KnownNode(address string) bool {
-	for _, node := range nodes {
-		if node == address {
-			return true
-		}
-	}
-	return false
 }

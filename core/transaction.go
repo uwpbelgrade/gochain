@@ -71,6 +71,7 @@ func (tx *Transaction) Sign(pk *ecdsa.PrivateKey, previousTxs map[string]Transac
 	if tx.IsCoinbase() {
 		return
 	}
+	fmt.Println("YOYOYO3333")
 	payload := tx.AsSignaturePayload()
 	for ii, i := range payload.Vin {
 		previousTx := previousTxs[hex.EncodeToString(i.Txid)]
