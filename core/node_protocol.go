@@ -29,6 +29,13 @@ type GetBlocksCommand struct {
 	Origin string
 }
 
+// GetDataCommand struct
+type GetDataCommand struct {
+	Orign string
+	Type  string
+	ID    []byte
+}
+
 // InventoryCommand struct
 type InventoryCommand struct {
 	Origin string
@@ -36,16 +43,16 @@ type InventoryCommand struct {
 	Data   [][]byte
 }
 
-// BlocksCommand struct
-type BlocksCommand struct {
+// BlockCommand struct
+type BlockCommand struct {
 	Origin string
-	Blocks []byte
+	Block  []byte
 }
 
-// TransactionsCommand struct
-type TransactionsCommand struct {
-	Origin       string
-	Transactions []Transaction
+// TransactionCommand struct
+type TransactionCommand struct {
+	Origin      string
+	Transaction []byte
 }
 
 // KnownNode checks if node is known

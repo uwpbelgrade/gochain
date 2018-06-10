@@ -40,6 +40,17 @@ func (tx *Transaction) Serialize() []byte {
 	return encoded.Bytes()
 }
 
+// DeserializeTransaction serializes the transaction
+func DeserializeTransaction(data []byte) Transaction {
+	var transaction Transaction
+	decoder := gob.NewDecoder(bytes.NewReader(data))
+	err := decoder.Decode(&transaction)
+	if err != nil {
+		log.Panic(err)
+	}
+	return transaction
+}
+
 // IsCoinbase checks whether the transaction is coinbase
 func (tx *Transaction) IsCoinbase() bool {
 	return len(tx.Vin) == 1 && len(tx.Vin[0].Txid) == 0 && tx.Vin[0].Vout == -1

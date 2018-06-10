@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log"
 	"strconv"
 
 	"github.com/boltdb/bolt"
@@ -65,7 +66,7 @@ func GetBestHeight(db *bolt.DB, config Config) int {
 		lastHash := bucket.Get([]byte("1"))
 		blockBytes := bucket.Get(lastHash)
 		lastBlock = *Deserialize(blockBytes)
-		fmt.Printf("getting best height from bucket: %s found: %s transactions: %d\n", config.GetDbBucket(), strconv.FormatBool(bucket != nil), len(lastBlock.Transactions))
+		fmt.Printf("getting best height from bucket: %s transactions: %d\n", config.GetDbBucket(), len(lastBlock.Transactions))
 		return nil
 	})
 	if err != nil {
@@ -97,8 +98,8 @@ func GetChain(config Config, nodeID string) *Blockchain {
 	return &Blockchain{tip, db, bestHeight, config, *ws}
 }
 
-// AddBlock adds given data as new block in chain
-func (chain *Blockchain) AddBlock(ts []*Transaction) (*Block, error) {
+// MineBlock adds given data as new block in chain
+func (chain *Blockchain) MineBlock(ts []*Transaction) (*Block, error) {
 	var tip []byte
 	for _, tx := range ts {
 		if chain.VerifyTransaction(tx) != true {
@@ -121,6 +122,55 @@ func (chain *Blockchain) AddBlock(ts []*Transaction) (*Block, error) {
 	})
 	chain.bestHeight = newBestHeight
 	return block, err
+}
+
+// AddBlock adds prepared block to chain
+func (chain *Blockchain) AddBlock(block *Block) {
+	err := chain.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(chain.config.GetDbBucket()))
+		blockInDb := b.Get(block.Hash)
+		if blockInDb != nil {
+			return nil
+		}
+		blockData := block.Serialize()
+		err := b.Put(block.Hash, blockData)
+		if err != nil {
+			log.Panic(err)
+		}
+
+		lastHash := b.Get([]byte("1"))
+		lastBlockData := b.Get(lastHash)
+		lastBlock := Deserialize(lastBlockData)
+		if block.Height > lastBlock.Height {
+			err = b.Put([]byte("1"), block.Hash)
+			if err != nil {
+				log.Panic(err)
+			}
+			chain.tip = block.Hash
+		}
+		return nil
+	})
+	if err != nil {
+		log.Panic(err)
+	}
+}
+
+// GetBlock finds a block by its hash and returns it
+func (chain *Blockchain) GetBlock(blockHash []byte) (Block, error) {
+	var block Block
+	err := chain.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(chain.config.GetDbBucket()))
+		blockData := b.Get(blockHash)
+		if blockData == nil {
+			return errors.New("block not found")
+		}
+		block = *Deserialize(blockData)
+		return nil
+	})
+	if err != nil {
+		return block, err
+	}
+	return block, nil
 }
 
 // Iterator makes new Blockchain iterator
@@ -260,7 +310,7 @@ func (chain *Blockchain) SendFromAddress(pk ecdsa.PrivateKey, from string, to st
 	fmt.Printf("signing transactions\n")
 	tx.Log()
 	chain.SignTransaction(&pk, tx)
-	block, _ := chain.AddBlock([]*Transaction{tx})
+	block, _ := chain.MineBlock([]*Transaction{tx})
 	store := &UtxoStore{chain}
 	return store.Update(block)
 }
@@ -276,6 +326,10 @@ func (chain *Blockchain) GetBlockHashes() [][]byte {
 			break
 		}
 	}
+	// last := len(blocks) - 1
+	// for i := 0; i < len(blocks)/2; i++ {
+	// 	blocks[i], blocks[last-i] = blocks[last-i], blocks[i]
+	// }
 	return blocks
 }
 
