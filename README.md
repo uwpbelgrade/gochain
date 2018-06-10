@@ -3,7 +3,7 @@ gochain
 
 Simplified blockchain written in Go with all main functionalities and simplified networking. It helped us get more experience with Go and get better understanding of some internals in how blockchain implementations work.
 
-This example was inspired by original (Jeiwan implementation)[https://github.com/Jeiwan/blockchain_go]. Basic features are same and there are differences internally in how is code structures, environment configuration and command line actions.
+This example was inspired by original [Jeiwan implementation](https://github.com/Jeiwan/blockchain_go). Basic features are same and there are differences internally in how is code structures, environment configuration and command line actions.
 
 ## Usage
 
